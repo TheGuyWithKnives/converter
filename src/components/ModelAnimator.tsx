@@ -3,9 +3,9 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { Stage, OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { 
-  Video, Loader2, Download, AlertCircle, Settings, 
-  Clock, Monitor, Palette, FileVideo, CheckCircle2 
+import {
+  Video, Loader2, Download, AlertCircle, Settings,
+  Clock, Monitor, Palette, FileVideo, CheckCircle2, X
 } from 'lucide-react';
 
 // --- TYPY A KONSTANTY ---
@@ -107,9 +107,10 @@ function SceneSetup({
 
 interface ModelAnimatorProps {
   modelUrl: string | null;
+  onClose?: () => void;
 }
 
-export function ModelAnimator({ modelUrl }: ModelAnimatorProps) {
+export function ModelAnimator({ modelUrl, onClose }: ModelAnimatorProps) {
   // Stav aplikace
   const [isRecording, setIsRecording] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -221,12 +222,23 @@ export function ModelAnimator({ modelUrl }: ModelAnimatorProps) {
           <Video className="w-6 h-6 text-blue-500" />
           Generátor 3D Videa
         </h3>
-        <button 
-          onClick={() => setShowSettings(!showSettings)}
-          className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-gray-800 text-gray-400'}`}
-        >
-          <Settings className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-blue-600/20 text-blue-400' : 'hover:bg-gray-800 text-gray-400'}`}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-red-600/20 text-gray-400 hover:text-red-400 transition-colors"
+              title="Zavřít"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

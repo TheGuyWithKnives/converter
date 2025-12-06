@@ -457,6 +457,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       {showAnimator && (
         <ModelAnimator
           modelUrl={modelUrl}
+          onClose={() => setShowAnimator(false)}
         />
       )}
     </div>
