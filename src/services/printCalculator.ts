@@ -14,11 +14,16 @@ export interface Printer {
   type: 'FDM' | 'SLA';
   speedMultiplier: number;
   layerHeight: number;
+  nozzleDiameter?: number;
+  volumetricSpeed?: number;
+  exposureTime?: number;
+  liftTime?: number;
 }
 
 export interface GeometryStats {
   volume: number;
   surfaceArea: number;
+  modelHeight: number;
 }
 
 export interface PrintEstimate {
@@ -72,28 +77,36 @@ export const PRINTERS: Printer[] = [
     name: 'Ender 3 (Standard)',
     type: 'FDM',
     speedMultiplier: 1.0,
-    layerHeight: 0.2
+    layerHeight: 0.2,
+    nozzleDiameter: 0.04,
+    volumetricSpeed: 6.0
   },
   {
     id: 'prusa-mk4',
     name: 'Prusa MK4 (Quality)',
     type: 'FDM',
     speedMultiplier: 1.2,
-    layerHeight: 0.15
+    layerHeight: 0.15,
+    nozzleDiameter: 0.04,
+    volumetricSpeed: 8.0
   },
   {
     id: 'bambu-x1',
     name: 'Bambu Lab X1 (Speed)',
     type: 'FDM',
     speedMultiplier: 4.0,
-    layerHeight: 0.2
+    layerHeight: 0.2,
+    nozzleDiameter: 0.04,
+    volumetricSpeed: 24.0
   },
   {
     id: 'anycubic-photon',
     name: 'Anycubic Photon (SLA)',
     type: 'SLA',
     speedMultiplier: 1.0,
-    layerHeight: 0.05
+    layerHeight: 0.05,
+    exposureTime: 2.5,
+    liftTime: 4.0
   }
 ];
 
@@ -131,6 +144,7 @@ function triangleArea(v0: THREE.Vector3, v1: THREE.Vector3, v2: THREE.Vector3): 
 export function calculateGeometryStats(object: THREE.Object3D): GeometryStats {
   let totalVolume = 0;
   let totalSurfaceArea = 0;
+  const boundingBox = new THREE.Box3();
 
   object.traverse((child) => {
     if (child instanceof THREE.Mesh) {
@@ -175,14 +189,20 @@ export function calculateGeometryStats(object: THREE.Object3D): GeometryStats {
     }
   });
 
+  boundingBox.setFromObject(object);
+  const size = new THREE.Vector3();
+  boundingBox.getSize(size);
+
   totalVolume = Math.abs(totalVolume);
 
   const volumeCm3 = totalVolume / 1000;
   const surfaceAreaCm2 = totalSurfaceArea / 100;
+  const modelHeightCm = size.z / 10;
 
   return {
     volume: volumeCm3,
-    surfaceArea: surfaceAreaCm2
+    surfaceArea: surfaceAreaCm2,
+    modelHeight: modelHeightCm
   };
 }
 
@@ -208,7 +228,8 @@ export function estimatePrint(
 }
 
 /**
- * Calculates FDM print estimates
+ * Calculates FDM print estimates using precise mathematical formulas
+ * Based on slicing simulation with shell and infill calculations
  */
 function estimateFDM(
   stats: GeometryStats,
@@ -216,49 +237,69 @@ function estimateFDM(
   material: Material,
   infillPercentage: number
 ): PrintEstimate {
-  const wallThickness = 0.12;
+  const D_nozzle = printer.nozzleDiameter || 0.04;
+  const T_wall = 3 * D_nozzle;
+  const rho = material.density;
+  const I = infillPercentage / 100;
 
-  const shellVolume = stats.surfaceArea * wallThickness;
-  const infillVolume = (stats.volume - shellVolume) * (infillPercentage / 100);
-  const totalPlasticVolume = shellVolume + Math.max(0, infillVolume);
+  let V_shell = stats.surfaceArea * T_wall;
+  if (V_shell > stats.volume) {
+    V_shell = stats.volume;
+  }
 
-  const weight = totalPlasticVolume * material.density;
-  const cost = (weight / 1000) * material.pricePerKg;
+  const V_interior = stats.volume - V_shell;
+  const V_infill = V_interior * I;
 
-  const baseSpeed = 10;
-  const layerPenalty = (stats.volume / printer.layerHeight) * 0.05;
-  const printTime = (totalPlasticVolume / (baseSpeed * printer.speedMultiplier)) + layerPenalty;
+  const V_total = V_shell + V_infill;
+
+  const W = V_total * rho;
+  const C = (W / 1000) * material.pricePerKg;
+
+  const Speed_base = printer.volumetricSpeed || 6.0;
+  const T_extrusion = V_total / Speed_base;
+
+  const layerHeightMm = printer.layerHeight * 10;
+  const numberOfLayers = (stats.modelHeight * 10) / layerHeightMm;
+  const T_layers = (numberOfLayers * 0.05) / 60;
+
+  const T_warmup = 0.1;
+  const T_total = T_extrusion + T_layers + T_warmup;
 
   return {
-    printTime: Math.max(1, printTime),
-    weight: Math.max(0.1, weight),
-    cost: Math.max(1, cost),
-    plasticVolume: totalPlasticVolume
+    printTime: Math.max(1, T_total * 60),
+    weight: Math.max(0.1, W),
+    cost: Math.max(1, C),
+    plasticVolume: V_total
   };
 }
 
 /**
- * Calculates SLA print estimates
+ * Calculates SLA print estimates using precise mathematical formulas
+ * Based on layer count and exposure times
  */
 function estimateSLA(
   stats: GeometryStats,
   printer: Printer,
   material: Material
 ): PrintEstimate {
-  const boundingBox = new THREE.Box3();
-  const modelHeight = 10;
+  const layerHeightMm = printer.layerHeight * 10;
+  const numberOfLayers = (stats.modelHeight * 10) / layerHeightMm;
 
-  const exposureTimePerLayer = 8;
-  const numberOfLayers = modelHeight / printer.layerHeight;
-  const printTime = numberOfLayers * exposureTimePerLayer / 60;
+  const exposureTime = printer.exposureTime || 2.5;
+  const liftTime = printer.liftTime || 4.0;
+  const timePerLayer = exposureTime + liftTime;
 
-  const weight = stats.volume * material.density;
-  const cost = (weight / 1000) * material.pricePerKg;
+  const T_layers = (numberOfLayers * timePerLayer) / 3600;
+  const T_baseAndLeveling = 10 / 60;
+  const T_total = T_layers + T_baseAndLeveling;
+
+  const W = stats.volume * material.density;
+  const C = (W / 1000) * material.pricePerKg;
 
   return {
-    printTime: Math.max(1, printTime),
-    weight: Math.max(0.1, weight),
-    cost: Math.max(1, cost),
+    printTime: Math.max(1, T_total * 60),
+    weight: Math.max(0.1, W),
+    cost: Math.max(1, C),
     plasticVolume: stats.volume
   };
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Clock, Weight, DollarSign, Printer as PrinterIcon, Box, Layers } from 'lucide-react';
+import { Clock, Weight, DollarSign, Printer as PrinterIcon, Box, Layers, Settings } from 'lucide-react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
 import {
@@ -12,6 +12,9 @@ import {
   type Printer,
   type GeometryStats
 } from '../services/printCalculator';
+import { getCustomMaterials, getCustomPrinters } from '../services/customPrintSettings';
+import { CustomMaterialForm } from './CustomMaterialForm';
+import { CustomPrinterForm } from './CustomPrinterForm';
 
 interface PrintEstimatorProps {
   modelUrl: string;
@@ -24,10 +27,26 @@ export function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
   const [geometryStats, setGeometryStats] = useState<GeometryStats | null>(null);
   const [isCalculating, setIsCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCustomSettings, setShowCustomSettings] = useState<boolean>(false);
+
+  const [allMaterials, setAllMaterials] = useState<Material[]>(MATERIALS);
+  const [allPrinters, setAllPrinters] = useState<Printer[]>(PRINTERS);
+
+  useEffect(() => {
+    loadCustomData();
+  }, []);
+
+  const loadCustomData = async () => {
+    const customMaterials = await getCustomMaterials();
+    const customPrinters = await getCustomPrinters();
+
+    setAllMaterials([...MATERIALS, ...customMaterials]);
+    setAllPrinters([...PRINTERS, ...customPrinters]);
+  };
 
   const availableMaterials = useMemo(() => {
-    return MATERIALS.filter(m => m.type === selectedPrinter.type);
-  }, [selectedPrinter]);
+    return allMaterials.filter(m => m.type === selectedPrinter.type);
+  }, [selectedPrinter, allMaterials]);
 
   useEffect(() => {
     if (availableMaterials.length > 0 && !availableMaterials.find(m => m.id === selectedMaterial.id)) {
@@ -116,11 +135,59 @@ export function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
     );
   }
 
+  if (showCustomSettings) {
+    return (
+      <div className="bg-slate-800 rounded-lg p-6 shadow-xl space-y-6 max-w-2xl">
+        <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-blue-400" />
+            <h3 className="text-white font-semibold text-lg">Custom Settings</h3>
+          </div>
+          <button
+            onClick={() => setShowCustomSettings(false)}
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            Back to Calculator
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-white font-medium mb-3">Materials</h4>
+            <CustomMaterialForm
+              onMaterialAdded={(material) => {
+                setAllMaterials([...allMaterials, material]);
+              }}
+            />
+          </div>
+
+          <div>
+            <h4 className="text-white font-medium mb-3">Printers</h4>
+            <CustomPrinterForm
+              onPrinterAdded={(printer) => {
+                setAllPrinters([...allPrinters, printer]);
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-slate-800 rounded-lg p-6 shadow-xl space-y-6 max-w-2xl">
-      <div className="flex items-center gap-2 border-b border-slate-700 pb-3">
-        <PrinterIcon className="w-5 h-5 text-blue-400" />
-        <h3 className="text-white font-semibold text-lg">Print Cost & Time Estimation</h3>
+      <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+        <div className="flex items-center gap-2">
+          <PrinterIcon className="w-5 h-5 text-blue-400" />
+          <h3 className="text-white font-semibold text-lg">Print Cost & Time Estimation</h3>
+        </div>
+        <button
+          onClick={() => setShowCustomSettings(true)}
+          className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+          title="Custom Settings"
+        >
+          <Settings className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -132,12 +199,12 @@ export function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
           <select
             value={selectedPrinter.id}
             onChange={(e) => {
-              const printer = PRINTERS.find(p => p.id === e.target.value);
+              const printer = allPrinters.find(p => p.id === e.target.value);
               if (printer) setSelectedPrinter(printer);
             }}
             className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none"
           >
-            {PRINTERS.map(printer => (
+            {allPrinters.map(printer => (
               <option key={printer.id} value={printer.id}>
                 {printer.name}
               </option>
@@ -198,7 +265,7 @@ export function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
           <h4 className="text-white font-medium text-sm mb-3 border-b border-slate-600 pb-2">
             Model Statistics
           </h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="bg-slate-800 rounded p-3">
               <p className="text-slate-400 mb-1">Volume</p>
               <p className="text-white font-semibold">{geometryStats.volume.toFixed(2)} cm³</p>
@@ -206,6 +273,10 @@ export function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
             <div className="bg-slate-800 rounded p-3">
               <p className="text-slate-400 mb-1">Surface Area</p>
               <p className="text-white font-semibold">{geometryStats.surfaceArea.toFixed(2)} cm²</p>
+            </div>
+            <div className="bg-slate-800 rounded p-3">
+              <p className="text-slate-400 mb-1">Height</p>
+              <p className="text-white font-semibold">{geometryStats.modelHeight.toFixed(2)} cm</p>
             </div>
           </div>
         </div>
