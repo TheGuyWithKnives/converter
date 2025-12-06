@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { 
   Clock, 
   Weight, 
   BadgeDollarSign, 
-  Printer, 
+  Printer as PrinterIcon, 
   Box, 
   Layers, 
   Settings, 
@@ -12,45 +14,27 @@ import {
   X, 
   Calculator, 
   Cuboid,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 
-// --- TYPY ---
+// Import služeb a typů
+import { 
+  MATERIALS as DEFAULT_MATERIALS, 
+  PRINTERS as DEFAULT_PRINTERS, 
+  calculateGeometryStats, 
+  estimatePrint, 
+  type Material, 
+  type Printer,
+  type GeometryStats
+} from '../services/printCalculator';
 
-interface Material {
-  id: string;
-  name: string;
-  type: 'FDM' | 'SLA';
-  density: number;
-  price: number;
-}
-
-interface PrinterConfig {
-  id: string;
-  name: string;
-  type: 'FDM' | 'SLA';
-  speedBase?: number; // FDM
-  power: number;
-  liftTime?: number; // SLA
-  exposureTime?: number; // SLA
-}
-
-// --- VÝCHOZÍ DATA ---
-
-const DEFAULT_MATERIALS: Material[] = [
-  { id: 'mat_1', name: 'PLA (Generic)', type: 'FDM', density: 1.24, price: 450 },
-  { id: 'mat_2', name: 'PETG (Generic)', type: 'FDM', density: 1.27, price: 500 },
-  { id: 'mat_3', name: 'ABS (Generic)', type: 'FDM', density: 1.04, price: 550 },
-  { id: 'mat_4', name: 'TPU (Flex)', type: 'FDM', density: 1.21, price: 850 },
-  { id: 'mat_5', name: 'Standard Resin', type: 'SLA', density: 1.10, price: 800 },
-  { id: 'mat_6', name: 'Tough Resin', type: 'SLA', density: 1.15, price: 1200 },
-];
-
-const DEFAULT_PRINTERS: PrinterConfig[] = [
-  { id: 'prn_1', name: 'Standard FDM (Ender 3)', type: 'FDM', speedBase: 6.0, power: 150 },
-  { id: 'prn_2', name: 'Fast FDM (Bambu/Voron)', type: 'FDM', speedBase: 24.0, power: 300 },
-  { id: 'prn_3', name: 'Standard SLA (Mars)', type: 'SLA', liftTime: 4, exposureTime: 2.5, power: 60 },
-];
+import { 
+  getCustomMaterials, 
+  getCustomPrinters, 
+  addCustomMaterial, 
+  addCustomPrinter 
+} from '../services/customPrintSettings';
 
 // --- POMOCNÉ KOMPONENTY ---
 
@@ -72,32 +56,30 @@ const SettingsPanel = ({
   printers, 
   onAddMaterial, 
   onAddPrinter, 
-  onDeleteMaterial, 
-  onDeletePrinter, 
   onClose 
 }: {
   materials: Material[];
-  printers: PrinterConfig[];
-  onAddMaterial: (m: Material) => void;
-  onAddPrinter: (p: PrinterConfig) => void;
-  onDeleteMaterial: (id: string) => void;
-  onDeletePrinter: (id: string) => void;
+  printers: Printer[];
+  onAddMaterial: (m: Omit<Material, 'id'>) => void;
+  onAddPrinter: (p: Omit<Printer, 'id'>) => void;
   onClose: () => void;
 }) => {
-  const [newMat, setNewMat] = useState<Omit<Material, 'id'>>({ name: '', type: 'FDM', density: 1.24, price: 500 });
-  const [newPrn, setNewPrn] = useState<Omit<PrinterConfig, 'id'>>({ name: '', type: 'FDM', speedBase: 10, power: 150, liftTime: 4, exposureTime: 2.5 });
+  const [newMat, setNewMat] = useState<Omit<Material, 'id'>>({ name: '', type: 'FDM', density: 1.24, pricePerKg: 450 });
+  const [newPrn, setNewPrn] = useState<Omit<Printer, 'id'>>({ 
+    name: '', type: 'FDM', power: 150, layerHeight: 0.2, nozzleDiameter: 0.4, volumetricSpeed: 6.0 
+  });
   const [activeTab, setActiveTab] = useState<'materials' | 'printers'>('materials');
 
   const handleAddMat = () => {
     if(!newMat.name) return;
-    onAddMaterial({ ...newMat, id: Date.now().toString() });
-    setNewMat({ name: '', type: 'FDM', density: 1.24, price: 500 });
+    onAddMaterial(newMat);
+    setNewMat({ name: '', type: 'FDM', density: 1.24, pricePerKg: 450 });
   };
 
   const handleAddPrn = () => {
     if(!newPrn.name) return;
-    onAddPrinter({ ...newPrn, id: Date.now().toString() });
-    setNewPrn({ name: '', type: 'FDM', speedBase: 10, power: 150, liftTime: 4, exposureTime: 2.5 });
+    onAddPrinter(newPrn);
+    setNewPrn({ name: '', type: 'FDM', power: 150, layerHeight: 0.2, nozzleDiameter: 0.4, volumetricSpeed: 6.0 });
   };
 
   return (
@@ -126,7 +108,7 @@ const SettingsPanel = ({
                   <option value="FDM">FDM</option><option value="SLA">SLA</option>
                 </select>
                 <input type="number" placeholder="Hustota" value={newMat.density} onChange={e => setNewMat({...newMat, density: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
-                <input type="number" placeholder="Cena Kč/kg" value={newMat.price} onChange={e => setNewMat({...newMat, price: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
+                <input type="number" placeholder="Cena Kč/kg" value={newMat.pricePerKg} onChange={e => setNewMat({...newMat, pricePerKg: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
               </div>
               <button onClick={handleAddMat} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-1 rounded text-sm flex items-center justify-center gap-1"><Plus className="w-3 h-3" /> Přidat</button>
             </div>
@@ -134,9 +116,9 @@ const SettingsPanel = ({
               <div key={m.id} className="flex justify-between items-center bg-slate-700 p-2 rounded border border-slate-600">
                 <div>
                   <p className="text-white text-sm font-medium">{m.name}</p>
-                  <p className="text-xs text-slate-400">{m.type} | {m.density} g/cm³ | {m.price} Kč</p>
+                  <p className="text-xs text-slate-400">{m.type} | {m.density} g/cm³ | {m.pricePerKg} Kč</p>
                 </div>
-                <button onClick={() => onDeleteMaterial(m.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-4 h-4" /></button>
+                <button className="text-slate-600 cursor-not-allowed p-1" title="Nelze smazat výchozí data"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
           </div>
@@ -149,10 +131,10 @@ const SettingsPanel = ({
                 <select value={newPrn.type} onChange={e => setNewPrn({...newPrn, type: e.target.value as 'FDM' | 'SLA'})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm">
                   <option value="FDM">FDM</option><option value="SLA">SLA</option>
                 </select>
-                <input type="number" placeholder="Waty (W)" value={newPrn.power} onChange={e => setNewPrn({...newPrn, power: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
+                <input type="number" placeholder="Příkon (W)" value={newPrn.power} onChange={e => setNewPrn({...newPrn, power: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
               </div>
               {newPrn.type === 'FDM' ? (
-                 <input type="number" placeholder="Rychlost (cm³/h)" value={newPrn.speedBase} onChange={e => setNewPrn({...newPrn, speedBase: parseFloat(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
+                 <input type="number" placeholder="Vol. Speed (cm³/h)" value={newPrn.volumetricSpeed} onChange={e => setNewPrn({...newPrn, volumetricSpeed: parseFloat(e.target.value)})} className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                      <input type="number" placeholder="Lift (s)" value={newPrn.liftTime} onChange={e => setNewPrn({...newPrn, liftTime: parseFloat(e.target.value)})} className="bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white text-sm" />
@@ -167,7 +149,7 @@ const SettingsPanel = ({
                   <p className="text-white text-sm font-medium">{p.name}</p>
                   <p className="text-xs text-slate-400">{p.type} | {p.power}W</p>
                 </div>
-                <button onClick={() => onDeletePrinter(p.id)} className="text-red-400 hover:text-red-300 p-1"><Trash2 className="w-4 h-4" /></button>
+                <button className="text-slate-600 cursor-not-allowed p-1"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
           </div>
@@ -179,99 +161,123 @@ const SettingsPanel = ({
 
 // --- HLAVNÍ KOMPONENTA ---
 
-export default function PrintEstimator() {
+interface PrintEstimatorProps {
+  modelUrl?: string | null;
+}
+
+export default function PrintEstimator({ modelUrl }: PrintEstimatorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-
-  // Data (s LocalStorage persistencí)
-  const [materials, setMaterials] = useState<Material[]>(() => {
-    if (typeof window === 'undefined') return DEFAULT_MATERIALS;
-    const saved = localStorage.getItem('calc_materials');
-    return saved ? JSON.parse(saved) : DEFAULT_MATERIALS;
-  });
   
-  const [printers, setPrinters] = useState<PrinterConfig[]>(() => {
-    if (typeof window === 'undefined') return DEFAULT_PRINTERS;
-    const saved = localStorage.getItem('calc_printers');
-    return saved ? JSON.parse(saved) : DEFAULT_PRINTERS;
-  });
-
-  // Ukládání změn
-  useEffect(() => { 
-    if (typeof window !== 'undefined') localStorage.setItem('calc_materials', JSON.stringify(materials)); 
-  }, [materials]);
+  // Stavy pro data
+  const [materials, setMaterials] = useState<Material[]>(DEFAULT_MATERIALS);
+  const [printers, setPrinters] = useState<Printer[]>(DEFAULT_PRINTERS);
   
-  useEffect(() => { 
-    if (typeof window !== 'undefined') localStorage.setItem('calc_printers', JSON.stringify(printers)); 
-  }, [printers]);
-
-  // Vstupy
-  const [selectedPrinterId, setSelectedPrinterId] = useState(printers[0].id);
-  const [selectedMaterialId, setSelectedMaterialId] = useState(materials[0].id);
+  // Stavy pro výpočet
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string>('');
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string>('');
   const [infill, setInfill] = useState(20);
+  const [electricityPrice, setElectricityPrice] = useState(6.0);
   
   // Geometrie
-  const [geo, setGeo] = useState({ volume: 50, area: 150, height: 8 });
-  const [electricityPrice, setElectricityPrice] = useState(6.0);
-  const [layerHeight, setLayerHeight] = useState(0.2);
+  const [geoStats, setGeoStats] = useState<GeometryStats>({ volume: 50, surfaceArea: 150, modelHeight: 8 });
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Odvozené
+  // Načtení dat při startu
+  useEffect(() => {
+    async function loadData() {
+      const customMaterials = await getCustomMaterials();
+      const customPrinters = await getCustomPrinters();
+      
+      const allMaterials = [...DEFAULT_MATERIALS, ...customMaterials];
+      const allPrinters = [...DEFAULT_PRINTERS, ...customPrinters];
+      
+      setMaterials(allMaterials);
+      setPrinters(allPrinters);
+      
+      if (!selectedPrinterId && allPrinters.length > 0) setSelectedPrinterId(allPrinters[0].id);
+      if (!selectedMaterialId && allMaterials.length > 0) setSelectedMaterialId(allMaterials[0].id);
+    }
+    loadData();
+  }, []);
+
+  // Automatická analýza modelu
+  useEffect(() => {
+    if (!modelUrl || !isOpen) return;
+
+    setIsAnalyzing(true);
+    const loader = new GLTFLoader();
+    
+    loader.load(
+      modelUrl,
+      (gltf) => {
+        try {
+          const stats = calculateGeometryStats(gltf.scene);
+          if (stats.volume > 0) {
+            setGeoStats(stats);
+          }
+        } catch (e) {
+          console.error("Chyba při analýze geometrie:", e);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      },
+      undefined,
+      (err) => {
+        console.error("Nelze načíst model pro analýzu:", err);
+        setIsAnalyzing(false);
+      }
+    );
+  }, [modelUrl, isOpen]);
+
   const selectedPrinter = printers.find(p => p.id === selectedPrinterId) || printers[0];
-  const availableMaterials = materials.filter(m => m.type === selectedPrinter.type);
+  const availableMaterials = materials.filter(m => m.type === selectedPrinter?.type);
+  
+  useEffect(() => {
+    const currentMat = materials.find(m => m.id === selectedMaterialId);
+    if (!currentMat || currentMat.type !== selectedPrinter?.type) {
+      if (availableMaterials.length > 0) {
+        setSelectedMaterialId(availableMaterials[0].id);
+      }
+    }
+  }, [selectedPrinter, materials, availableMaterials, selectedMaterialId]);
+
   const selectedMaterial = materials.find(m => m.id === selectedMaterialId) || availableMaterials[0] || materials[0];
 
-  // Reset výběru při změně typu tiskárny
-  useEffect(() => {
-    const newMat = materials.find(m => m.type === selectedPrinter.type);
-    if(newMat) setSelectedMaterialId(newMat.id);
-    setLayerHeight(selectedPrinter.type === 'FDM' ? 0.2 : 0.05);
-    if(selectedPrinter.type === 'SLA') setInfill(100);
-  }, [selectedPrinter.type, printers, materials]);
-
-  // --- VÝPOČET ---
-  const result = useMemo(() => {
-    const rho = selectedMaterial.density;
-    let totalTimeHours = 0;
-    let totalVolume = 0;
-    
-    // SLA vs FDM Logic
-    if (selectedPrinter.type === 'FDM') {
-      const nozzle = 0.04; // standard
-      const tWall = 3 * nozzle;
-      let vShell = geo.area * tWall;
-      if (vShell > geo.volume) vShell = geo.volume;
-      const vInterior = geo.volume - vShell;
-      const vInfill = vInterior * (infill / 100);
-      totalVolume = vShell + vInfill;
-
-      const speedBase = selectedPrinter.speedBase || 6.0;
-      const layers = (geo.height * 10) / layerHeight;
-      const tExtrusion = totalVolume / speedBase;
-      const tLayers = (layers * 0.05) / 60;
-      totalTimeHours = tExtrusion + tLayers + 0.1;
-    } else {
-      // SLA
-      totalVolume = geo.volume * (infill / 100);
-      const layers = (geo.height * 10) / layerHeight;
-      const timePerLayer = (selectedPrinter.exposureTime || 2.5) + (selectedPrinter.liftTime || 4);
-      totalTimeHours = ((layers * timePerLayer) / 3600) + 0.166;
+  const handleAddMaterial = async (m: Omit<Material, 'id'>) => {
+    const newMat = await addCustomMaterial(m);
+    if (newMat) {
+      setMaterials(prev => [...prev, newMat]);
+      setSelectedMaterialId(newMat.id);
     }
+  };
 
-    const weight = totalVolume * rho;
-    const matCost = (weight / 1000) * selectedMaterial.price;
-    const energyKWh = (selectedPrinter.power / 1000) * totalTimeHours;
-    const elecCost = energyKWh * electricityPrice;
+  const handleAddPrinter = async (p: Omit<Printer, 'id'>) => {
+    const newPrn = await addCustomPrinter(p);
+    if (newPrn) {
+      setPrinters(prev => [...prev, newPrn]);
+      setSelectedPrinterId(newPrn.id);
+    }
+  };
+
+  const result = useMemo(() => {
+    if (!selectedPrinter || !selectedMaterial) return null;
+
+    const estimate = estimatePrint(geoStats, selectedPrinter, selectedMaterial, infill);
+    
+    const powerConsumptionW = selectedPrinter.power || (selectedPrinter.type === 'FDM' ? 150 : 60);
+    const hours = estimate.printTime / 60;
+    const energyKWh = (powerConsumptionW / 1000) * hours;
+    const electricityCost = energyKWh * electricityPrice;
 
     return {
-      timeH: Math.floor(totalTimeHours),
-      timeM: Math.round((totalTimeHours % 1) * 60),
-      weight: weight,
-      costMat: matCost,
-      costElec: elecCost,
-      totalCost: matCost + elecCost
+      ...estimate,
+      electricityCost,
+      totalCost: estimate.cost + electricityCost,
+      hours: Math.floor(hours),
+      minutes: Math.round(estimate.printTime % 60)
     };
-  }, [geo, selectedPrinter, selectedMaterial, infill, layerHeight, electricityPrice]);
-
+  }, [geoStats, selectedPrinter, selectedMaterial, infill, electricityPrice]);
 
   if (!isOpen) return <FloatingButton onClick={() => setIsOpen(true)} />;
 
@@ -285,18 +291,15 @@ export default function PrintEstimator() {
             <SettingsPanel 
               materials={materials} 
               printers={printers}
-              onAddMaterial={m => setMaterials([...materials, m])}
-              onAddPrinter={p => setPrinters([...printers, p])}
-              onDeleteMaterial={id => setMaterials(materials.filter(m => m.id !== id))}
-              onDeletePrinter={id => setPrinters(printers.filter(p => p.id !== id))}
+              onAddMaterial={handleAddMaterial}
+              onAddPrinter={handleAddPrinter}
               onClose={() => setShowSettings(false)}
             />
           ) : (
             <div className="space-y-6">
-              {/* Header */}
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 text-blue-400" />
+                  <PrinterIcon className="w-5 h-5 text-blue-400" />
                   <h3 className="text-white font-semibold text-lg">Kalkulace Tisku & Nákladů</h3>
                 </div>
                 <div className="flex gap-2">
@@ -309,10 +312,9 @@ export default function PrintEstimator() {
                 </div>
               </div>
 
-              {/* Konfigurace */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white text-sm font-medium mb-2 flex items-center gap-2"><Printer className="w-4 h-4" /> Tiskárna</label>
+                  <label className="text-white text-sm font-medium mb-2 flex items-center gap-2"><PrinterIcon className="w-4 h-4" /> Tiskárna</label>
                   <select value={selectedPrinterId} onChange={e => setSelectedPrinterId(e.target.value)} className="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
                     {printers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
@@ -325,8 +327,7 @@ export default function PrintEstimator() {
                 </div>
               </div>
 
-              {/* Slider Infill (pouze FDM) */}
-              {selectedPrinter.type === 'FDM' && (
+              {selectedPrinter?.type === 'FDM' && (
                 <div>
                   <label className="text-white text-sm font-medium mb-2 flex items-center justify-between">
                     <span className="flex items-center gap-2"><Layers className="w-4 h-4" /> Infill (Výplň)</span>
@@ -336,71 +337,75 @@ export default function PrintEstimator() {
                 </div>
               )}
 
-              {/* Manuální vstupy Geometrie */}
-              <div className="bg-slate-700/50 rounded-lg p-4 space-y-3 border border-slate-600">
+              <div className="bg-slate-700/50 rounded-lg p-4 space-y-3 border border-slate-600 relative">
+                {isAnalyzing && (
+                  <div className="absolute inset-0 bg-slate-800/80 flex items-center justify-center rounded-lg z-10">
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Analyzuji model...</span>
+                    </div>
+                  </div>
+                )}
+                
                 <h4 className="text-white font-medium text-sm mb-3 border-b border-slate-600 pb-2 flex items-center gap-2">
-                  <Cuboid className="w-4 h-4 text-blue-400" /> Statistiky Modelu (Vstup)
+                  <Cuboid className="w-4 h-4 text-blue-400" /> Statistiky Modelu
                 </h4>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-slate-800 rounded p-2">
                     <label className="text-slate-400 text-xs mb-1 block">Objem (cm³)</label>
-                    <input type="number" value={geo.volume} onChange={e => setGeo({...geo, volume: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
+                    <input type="number" value={geoStats.volume.toFixed(2)} onChange={e => setGeoStats({...geoStats, volume: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
                   </div>
                   <div className="bg-slate-800 rounded p-2">
                     <label className="text-slate-400 text-xs mb-1 block">Plocha (cm²)</label>
-                    <input type="number" value={geo.area} onChange={e => setGeo({...geo, area: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
+                    <input type="number" value={geoStats.surfaceArea.toFixed(2)} onChange={e => setGeoStats({...geoStats, surfaceArea: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
                   </div>
                   <div className="bg-slate-800 rounded p-2">
                     <label className="text-slate-400 text-xs mb-1 block">Výška (cm)</label>
-                    <input type="number" value={geo.height} onChange={e => setGeo({...geo, height: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
+                    <input type="number" value={geoStats.modelHeight.toFixed(2)} onChange={e => setGeoStats({...geoStats, modelHeight: parseFloat(e.target.value)})} className="w-full bg-transparent text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none" />
                   </div>
                 </div>
                 
-                {/* Extra Settings */}
                 <div className="grid grid-cols-2 gap-3 pt-2">
                       <div className="bg-slate-800 rounded p-2 flex items-center justify-between">
                         <label className="text-slate-400 text-xs flex items-center gap-1"><Zap className="w-3 h-3 text-yellow-500"/> Cena el. (Kč/kWh)</label>
                         <input type="number" step="0.1" value={electricityPrice} onChange={e => setElectricityPrice(parseFloat(e.target.value))} className="w-16 bg-transparent text-right text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none text-sm" />
                     </div>
-                    <div className="bg-slate-800 rounded p-2 flex items-center justify-between">
-                        <label className="text-slate-400 text-xs">Vrstva (mm)</label>
-                        <input type="number" step="0.01" value={layerHeight} onChange={e => setLayerHeight(parseFloat(e.target.value))} className="w-16 bg-transparent text-right text-white font-semibold border-b border-slate-600 focus:border-blue-500 outline-none text-sm" />
+                </div>
+              </div>
+
+              {result && (
+                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-5 space-y-4 shadow-lg">
+                  <h4 className="text-white font-semibold text-base mb-3 flex items-center gap-2">
+                    <BadgeDollarSign className="w-5 h-5" />
+                    Odhadované Náklady
+                  </h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <Clock className="w-6 h-6 text-white mx-auto mb-2" />
+                      <p className="text-blue-100 text-xs mb-1">Čas tisku</p>
+                      <p className="text-white font-bold text-xl">{result.hours}h {result.minutes}m</p>
                     </div>
-                </div>
-              </div>
 
-              {/* Výsledky */}
-              <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-5 space-y-4 shadow-lg">
-                <h4 className="text-white font-semibold text-base mb-3 flex items-center gap-2">
-                  <BadgeDollarSign className="w-5 h-5" />
-                  Odhadované Náklady
-                </h4>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+                      <Weight className="w-6 h-6 text-white mx-auto mb-2" />
+                      <p className="text-blue-100 text-xs mb-1">Váha materiálu</p>
+                      <p className="text-white font-bold text-xl">{result.weight.toFixed(1)}g</p>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                    <Clock className="w-6 h-6 text-white mx-auto mb-2" />
-                    <p className="text-blue-100 text-xs mb-1">Čas tisku</p>
-                    <p className="text-white font-bold text-xl">{result.timeH}h {result.timeM}m</p>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border-2 border-white/20">
+                      <BadgeDollarSign className="w-6 h-6 text-white mx-auto mb-2" />
+                      <p className="text-blue-100 text-xs mb-1">Celková Cena</p>
+                      <p className="text-white font-bold text-xl">{result.totalCost.toFixed(0)} Kč</p>
+                    </div>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-                    <Weight className="w-6 h-6 text-white mx-auto mb-2" />
-                    <p className="text-blue-100 text-xs mb-1">Váha materiálu</p>
-                    <p className="text-white font-bold text-xl">{result.weight.toFixed(1)}g</p>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center border-2 border-white/20">
-                    <BadgeDollarSign className="w-6 h-6 text-white mx-auto mb-2" />
-                    <p className="text-blue-100 text-xs mb-1">Celková Cena</p>
-                    <p className="text-white font-bold text-xl">{result.totalCost.toFixed(0)} Kč</p>
+                  <div className="flex justify-between text-xs text-blue-100 px-4 pt-2 border-t border-white/20">
+                    <span>Materiál: {result.cost.toFixed(1)} Kč</span>
+                    <span>Elektřina: {result.electricityCost.toFixed(1)} Kč</span>
                   </div>
                 </div>
-
-                <div className="flex justify-between text-xs text-blue-100 px-4 pt-2 border-t border-white/20">
-                  <span>Materiál: {result.costMat.toFixed(1)} Kč</span>
-                  <span>Elektřina: {result.costElec.toFixed(1)} Kč</span>
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
