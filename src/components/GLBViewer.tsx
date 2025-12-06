@@ -6,8 +6,9 @@ import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js';
 import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { PLYExporter } from 'three/examples/jsm/exporters/PLYExporter.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
-import { Settings, Download, Sun, Lightbulb, Eye, Film } from 'lucide-react';
+import { Settings, Download, Sun, Lightbulb, Eye, Film, Calculator } from 'lucide-react';
 import { ModelAnimator } from './ModelAnimator';
+import { PrintEstimator } from './PrintEstimator';
 
 interface GLBViewerProps {
   modelUrl: string;
@@ -41,6 +42,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
   const [showControls, setShowControls] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showAnimator, setShowAnimator] = useState(false);
+  const [showEstimator, setShowEstimator] = useState(false);
   const [lighting, setLighting] = useState<LightingSettings>({
     ambientIntensity: 0.7,
     keyLightIntensity: 1.5,
@@ -302,6 +304,13 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
           <Film className="w-5 h-5" />
         </button>
         <button
+          onClick={() => setShowEstimator(true)}
+          className="p-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg transition-colors shadow-lg"
+          title="Print Cost & Time Estimator"
+        >
+          <Calculator className="w-5 h-5" />
+        </button>
+        <button
           onClick={() => setShowExport(!showExport)}
           className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
           title="Export Model"
@@ -460,6 +469,21 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
             modelUrl={modelUrl}
             onClose={() => setShowAnimator(false)}
           />
+        </div>
+      )}
+
+      {showEstimator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="relative">
+            <button
+              onClick={() => setShowEstimator(false)}
+              className="absolute -top-2 -right-2 z-10 w-8 h-8 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center transition-colors shadow-lg"
+              title="Close"
+            >
+              ×
+            </button>
+            <PrintEstimator modelUrl={modelUrl} />
+          </div>
         </div>
       )}
     </div>
