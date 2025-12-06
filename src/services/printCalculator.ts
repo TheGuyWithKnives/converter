@@ -263,7 +263,7 @@ function estimateFDM(
   const T_layers = (numberOfLayers * 0.05) / 60;
 
   const T_warmup = 0.1;
-  const T_total = T_extrusion + T_layers + T_warmup;
+  const T_total = (T_extrusion + T_layers + T_warmup) / printer.speedMultiplier;
 
   return {
     printTime: Math.max(1, T_total * 60),
@@ -291,7 +291,7 @@ function estimateSLA(
 
   const T_layers = (numberOfLayers * timePerLayer) / 3600;
   const T_baseAndLeveling = 10 / 60;
-  const T_total = T_layers + T_baseAndLeveling;
+  const T_total = (T_layers + T_baseAndLeveling) / printer.speedMultiplier;
 
   const W = stats.volume * material.density;
   const C = (W / 1000) * material.pricePerKg;
