@@ -7,7 +7,7 @@ import { STLExporter } from 'three/examples/jsm/exporters/STLExporter.js';
 import { PLYExporter } from 'three/examples/jsm/exporters/PLYExporter.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { Settings, Download, Sun, Lightbulb, Eye, Film } from 'lucide-react';
-import ModelAnimator from './ModelAnimator';
+import { ModelAnimator } from './ModelAnimator';
 
 interface GLBViewerProps {
   modelUrl: string;
@@ -457,7 +457,6 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       {showAnimator && (
         <ModelAnimator
           modelUrl={modelUrl}
-          onClose={() => setShowAnimator(false)}
         />
       )}
     </div>
