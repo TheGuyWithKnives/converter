@@ -4,6 +4,21 @@ import { generateImageHash, getCachedModel, saveCachedModel } from './modelCache
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/trellis-image-to-3d`;
 
+const lastRequestTimestamp = { value: 0 };
+const MIN_REQUEST_INTERVAL = 30000;
+
+function checkRateLimit(): void {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTimestamp.value;
+
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+    const waitTimeSeconds = Math.ceil((MIN_REQUEST_INTERVAL - timeSinceLastRequest) / 1000);
+    throw new Error(`Prosím počkejte ${waitTimeSeconds} sekund před dalším požadavkem na generování modelu`);
+  }
+
+  lastRequestTimestamp.value = now;
+}
+
 export interface TripoSRResult {
   model_url: string;
   status: 'SUCCEEDED' | 'FAILED' | 'PROCESSING';
@@ -49,6 +64,8 @@ export async function generateModelFromImage(
   }
 
   console.log('Cache miss - generating new model...');
+
+  checkRateLimit();
 
   let filesToProcess = [file];
   if (additionalFiles && additionalFiles.length > 0) {
@@ -109,9 +126,11 @@ export async function generateModelFromImage(
 
   const maxAttempts = 90;
   let attempts = 0;
+  let pollDelay = 2000;
 
   while (attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, pollDelay));
+    pollDelay = Math.min(pollDelay * 1.15, 10000);
     attempts++;
 
     console.log(`⏳ Polling attempt ${attempts}/${maxAttempts}...`);

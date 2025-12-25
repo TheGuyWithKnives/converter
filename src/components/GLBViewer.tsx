@@ -8,7 +8,7 @@ import { PLYExporter } from 'three/examples/jsm/exporters/PLYExporter.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { Settings, Download, Sun, Lightbulb, Eye, Film, Calculator } from 'lucide-react';
 import { ModelAnimator } from './ModelAnimator';
-import { PrintEstimator } from './PrintEstimator';
+import PrintEstimator from './PrintEstimator';
 
 interface GLBViewerProps {
   modelUrl: string;
@@ -171,16 +171,26 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     return () => {
       window.removeEventListener('resize', handleResize);
 
+      if (modelRef.current) {
+        modelRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.geometry?.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach(m => m.dispose());
+            } else {
+              child.material?.dispose();
+            }
+          }
+        });
+        scene.remove(modelRef.current);
+      }
+
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
       }
 
       renderer.dispose();
       controls.dispose();
-
-      if (modelRef.current) {
-        scene.remove(modelRef.current);
-      }
     };
   }, [modelUrl]);
 

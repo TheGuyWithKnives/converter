@@ -93,6 +93,12 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
     if (!sceneRef.current || !mesh) return;
 
     if (currentMeshRef.current) {
+      currentMeshRef.current.geometry?.dispose();
+      if (Array.isArray(currentMeshRef.current.material)) {
+        currentMeshRef.current.material.forEach(m => m.dispose());
+      } else {
+        currentMeshRef.current.material?.dispose();
+      }
       sceneRef.current.remove(currentMeshRef.current);
     }
 

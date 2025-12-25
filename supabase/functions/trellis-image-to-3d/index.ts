@@ -1,10 +1,19 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
-};
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:4173',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  };
+}
 
 const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN');
 const TRELLIS_MODEL_VERSION = 'e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c';
@@ -24,6 +33,9 @@ interface RequestBody {
 }
 
 Deno.serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -33,12 +45,44 @@ Deno.serve(async (req: Request) => {
 
   try {
     console.log('REPLICATE_API_TOKEN available:', !!REPLICATE_API_TOKEN);
-    
+
     if (!REPLICATE_API_TOKEN) {
       throw new Error('REPLICATE_API_TOKEN not configured');
     }
 
     const { image, images, instructions, predictionId, qualityPreset, advancedParams }: RequestBody = await req.json();
+
+    if (images && images.length > 10) {
+      throw new Error('Maximum 10 images allowed');
+    }
+
+    if (images) {
+      const totalSize = images.reduce((acc, img) => acc + img.length, 0);
+      if (totalSize > 15 * 1024 * 1024) {
+        throw new Error('Total image size exceeds 15MB limit');
+      }
+    }
+
+    if (instructions && instructions.length > 5000) {
+      throw new Error('Instructions too long (maximum 5000 characters)');
+    }
+
+    if (advancedParams) {
+      const { ss_sampling_steps, slat_sampling_steps, ss_guidance_strength, slat_guidance_strength } = advancedParams;
+
+      if (ss_sampling_steps && (ss_sampling_steps < 1 || ss_sampling_steps > 100)) {
+        throw new Error('Invalid ss_sampling_steps (must be 1-100)');
+      }
+      if (slat_sampling_steps && (slat_sampling_steps < 1 || slat_sampling_steps > 100)) {
+        throw new Error('Invalid slat_sampling_steps (must be 1-100)');
+      }
+      if (ss_guidance_strength && (ss_guidance_strength < 0 || ss_guidance_strength > 20)) {
+        throw new Error('Invalid ss_guidance_strength (must be 0-20)');
+      }
+      if (slat_guidance_strength && (slat_guidance_strength < 0 || slat_guidance_strength > 20)) {
+        throw new Error('Invalid slat_guidance_strength (must be 0-20)');
+      }
+    }
 
     if (predictionId) {
       console.log('Checking status for prediction:', predictionId);

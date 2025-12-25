@@ -6,8 +6,20 @@ export interface InstructionEffect {
   denoise?: boolean;
 }
 
+export function sanitizeInstructions(instructions: string): string {
+  return instructions
+    .replace(/system\s*:/gi, '')
+    .replace(/ignore\s*:/gi, '')
+    .replace(/forget\s*:/gi, '')
+    .replace(/previous\s+instructions/gi, '')
+    .replace(/[<>{}[\]\\]/g, '')
+    .slice(0, 2000)
+    .trim();
+}
+
 export function parseInstructions(instructions: string): InstructionEffect {
-  const lower = instructions.toLowerCase();
+  const sanitized = sanitizeInstructions(instructions);
+  const lower = sanitized.toLowerCase();
   const effect: InstructionEffect = {};
 
   if (lower.includes('světlejší') || lower.includes('světlý') || lower.includes('brighten')) {
@@ -58,12 +70,14 @@ export async function applyInstructionsToImage(
 ): Promise<{ file: File; url: string }> {
   console.log('applyInstructionsToImage - Input instructions:', instructions);
 
-  if (!instructions.trim()) {
+  const sanitized = sanitizeInstructions(instructions);
+
+  if (!sanitized.trim()) {
     console.log('applyInstructionsToImage - No instructions, returning original');
     return { file, url: URL.createObjectURL(file) };
   }
 
-  const effects = parseInstructions(instructions);
+  const effects = parseInstructions(sanitized);
   console.log('applyInstructionsToImage - Parsed effects:', effects);
 
   if (Object.keys(effects).length === 0) {

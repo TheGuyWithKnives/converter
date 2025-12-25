@@ -9,7 +9,6 @@ import {
   X,
   ZoomIn,
   ZoomOut,
-  Move,
   Eraser
 } from 'lucide-react';
 

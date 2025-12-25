@@ -36,121 +36,166 @@ export async function estimateDepth(
 
   if (onProgress) onProgress(0.3);
 
-  const imageTensor = tf.browser.fromPixels(canvas);
-  const grayscale = tf.image.rgbToGrayscale(imageTensor);
-  const normalized = grayscale.div(255.0);
+  let imageTensor: tf.Tensor3D | null = null;
+  let grayscale: tf.Tensor3D | null = null;
+  let normalized: tf.Tensor3D | null = null;
+  let sobelX: tf.Tensor4D | null = null;
+  let sobelY: tf.Tensor4D | null = null;
+  let input: tf.Tensor4D | null = null;
+  let gradX: tf.Tensor4D | null = null;
+  let gradY: tf.Tensor4D | null = null;
+  let gradient: tf.Tensor4D | null = null;
+  let brightness: tf.Tensor4D | null = null;
+  let depthFromBrightness: tf.Tensor4D | null = null;
+  let laplacian: tf.Tensor4D | null = null;
+  let detail: tf.Tensor4D | null = null;
+  let detailNorm: tf.Tensor4D | null = null;
+  let combined: tf.Tensor4D | null = null;
+  let blurred: tf.Tensor4D | null = null;
+  let depthEstimate: tf.Tensor3D | null = null;
+  let smoothed: tf.Tensor3D | null = null;
 
-  if (onProgress) onProgress(0.4);
+  try {
+    imageTensor = tf.browser.fromPixels(canvas);
+    grayscale = tf.image.rgbToGrayscale(imageTensor);
+    normalized = grayscale.div(255.0);
 
-  const sobelX = tf.tensor2d([
-    [-1, 0, 1],
-    [-2, 0, 2],
-    [-1, 0, 1]
-  ], [3, 3]).expandDims(2).expandDims(3);
+    if (onProgress) onProgress(0.4);
 
-  const sobelY = tf.tensor2d([
-    [-1, -2, -1],
-    [0, 0, 0],
-    [1, 2, 1]
-  ], [3, 3]).expandDims(2).expandDims(3);
+    sobelX = tf.tensor2d([
+      [-1, 0, 1],
+      [-2, 0, 2],
+      [-1, 0, 1]
+    ], [3, 3]).expandDims(2).expandDims(3) as tf.Tensor4D;
 
-  const input = normalized.expandDims(0);
+    sobelY = tf.tensor2d([
+      [-1, -2, -1],
+      [0, 0, 0],
+      [1, 2, 1]
+    ], [3, 3]).expandDims(2).expandDims(3) as tf.Tensor4D;
 
-  if (onProgress) onProgress(0.5);
+    input = normalized.expandDims(0) as tf.Tensor4D;
 
-  const gradX = tf.conv2d(input as tf.Tensor4D, sobelX as tf.Tensor4D, 1, 'same');
-  const gradY = tf.conv2d(input as tf.Tensor4D, sobelY as tf.Tensor4D, 1, 'same');
+    if (onProgress) onProgress(0.5);
 
-  const gradient = tf.sqrt(tf.add(tf.square(gradX), tf.square(gradY)));
+    gradX = tf.conv2d(input, sobelX, 1, 'same');
+    gradY = tf.conv2d(input, sobelY, 1, 'same');
 
-  if (onProgress) onProgress(0.6);
+    gradient = tf.sqrt(tf.add(tf.square(gradX), tf.square(gradY)));
 
-  const brightness = normalized.expandDims(0);
+    if (onProgress) onProgress(0.6);
 
-  const depthFromBrightness = tf.sigmoid(
-    tf.sub(brightness, 0.5).mul(8)
-  );
+    brightness = normalized.expandDims(0) as tf.Tensor4D;
 
-  if (onProgress) onProgress(0.65);
+    depthFromBrightness = tf.sigmoid(
+      tf.sub(brightness, 0.5).mul(8)
+    ) as tf.Tensor4D;
 
-  const laplacian = tf.tensor2d([
-    [0, -1, 0],
-    [-1, 4, -1],
-    [0, -1, 0]
-  ], [3, 3]).expandDims(2).expandDims(3);
+    if (onProgress) onProgress(0.65);
 
-  const detail = tf.conv2d(input as tf.Tensor4D, laplacian as tf.Tensor4D, 1, 'same');
-  const detailNorm = tf.abs(detail);
+    laplacian = tf.tensor2d([
+      [0, -1, 0],
+      [-1, 4, -1],
+      [0, -1, 0]
+    ], [3, 3]).expandDims(2).expandDims(3) as tf.Tensor4D;
 
-  if (onProgress) onProgress(0.7);
+    detail = tf.conv2d(input, laplacian, 1, 'same');
+    detailNorm = tf.abs(detail) as tf.Tensor4D;
 
-  const combined = tf.add(
-    tf.add(
-      gradient.mul(0.3),
-      depthFromBrightness.mul(0.5)
-    ),
-    detailNorm.mul(0.2)
-  );
+    if (onProgress) onProgress(0.7);
 
-  const blurred = tf.avgPool(combined as tf.Tensor4D, 5, 1, 'same');
+    combined = tf.add(
+      tf.add(
+        gradient.mul(0.3),
+        depthFromBrightness.mul(0.5)
+      ),
+      detailNorm.mul(0.2)
+    ) as tf.Tensor4D;
 
-  laplacian.dispose();
-  detail.dispose();
-  detailNorm.dispose();
+    blurred = tf.avgPool(combined, 5, 1, 'same');
 
-  let depthEstimate = blurred.squeeze([0]);
+    laplacian.dispose();
+    laplacian = null;
+    detail.dispose();
+    detail = null;
+    detailNorm.dispose();
+    detailNorm = null;
 
-  if (mask) {
-    try {
-      const maskCanvas = createCanvasFromImageData(mask);
-      const maskTensor = tf.browser.fromPixels(maskCanvas);
-      const maskGray = tf.image.rgbToGrayscale(maskTensor).div(255.0);
-      const maskReshaped = maskGray.squeeze([2]);
+    depthEstimate = blurred.squeeze([0]) as tf.Tensor3D;
 
-      const enhancedDepth = depthEstimate.mul(maskReshaped);
-      depthEstimate.dispose();
-      depthEstimate = enhancedDepth;
-      maskTensor.dispose();
-      maskGray.dispose();
-      maskReshaped.dispose();
-    } catch (error) {
-      console.warn('Failed to apply mask to depth map:', error);
+    if (mask) {
+      try {
+        const maskCanvas = createCanvasFromImageData(mask);
+        const maskTensor = tf.browser.fromPixels(maskCanvas);
+        const maskGray = tf.image.rgbToGrayscale(maskTensor).div(255.0);
+        const maskReshaped = maskGray.squeeze([2]);
+
+        const enhancedDepth = depthEstimate.mul(maskReshaped) as tf.Tensor3D;
+        depthEstimate.dispose();
+        depthEstimate = enhancedDepth;
+        maskTensor.dispose();
+        maskGray.dispose();
+        maskReshaped.dispose();
+      } catch (error) {
+        console.warn('Failed to apply mask to depth map:', error);
+      }
     }
+
+    if (onProgress) onProgress(0.85);
+
+    smoothed = tf.avgPool(
+      depthEstimate.expandDims(0) as tf.Tensor4D,
+      [11, 11],
+      [1, 1],
+      'same'
+    ).squeeze([0]) as tf.Tensor3D;
+
+    if (onProgress) onProgress(0.95);
+
+    imageTensor.dispose();
+    grayscale.dispose();
+    normalized.dispose();
+    sobelX.dispose();
+    sobelY.dispose();
+    input.dispose();
+    gradX.dispose();
+    gradY.dispose();
+    gradient.dispose();
+    brightness.dispose();
+    depthFromBrightness.dispose();
+    combined.dispose();
+    blurred.dispose();
+    depthEstimate.dispose();
+
+    if (onProgress) onProgress(1.0);
+
+    return {
+      depthMap: smoothed,
+      width: imageElement.width,
+      height: imageElement.height,
+    };
+  } catch (error) {
+    imageTensor?.dispose();
+    grayscale?.dispose();
+    normalized?.dispose();
+    sobelX?.dispose();
+    sobelY?.dispose();
+    input?.dispose();
+    gradX?.dispose();
+    gradY?.dispose();
+    gradient?.dispose();
+    brightness?.dispose();
+    depthFromBrightness?.dispose();
+    laplacian?.dispose();
+    detail?.dispose();
+    detailNorm?.dispose();
+    combined?.dispose();
+    blurred?.dispose();
+    depthEstimate?.dispose();
+    smoothed?.dispose();
+
+    throw error;
   }
-
-  if (onProgress) onProgress(0.85);
-
-  const smoothed = tf.avgPool(
-    depthEstimate.expandDims(0) as tf.Tensor4D,
-    [11, 11],
-    [1, 1],
-    'same'
-  ).squeeze([0]);
-
-  if (onProgress) onProgress(0.95);
-
-  imageTensor.dispose();
-  grayscale.dispose();
-  normalized.dispose();
-  sobelX.dispose();
-  sobelY.dispose();
-  input.dispose();
-  gradX.dispose();
-  gradY.dispose();
-  gradient.dispose();
-  brightness.dispose();
-  depthFromBrightness.dispose();
-  combined.dispose();
-  blurred.dispose();
-  depthEstimate.dispose();
-
-  if (onProgress) onProgress(1.0);
-
-  return {
-    depthMap: smoothed as tf.Tensor3D,
-    width: imageElement.width,
-    height: imageElement.height,
-  };
 }
 
 function createCanvasFromImageData(imageData: ImageData): HTMLCanvasElement {
