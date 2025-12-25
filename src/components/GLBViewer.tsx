@@ -30,6 +30,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const modelRef = useRef<THREE.Object3D | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const lightsRef = useRef<{
     ambient: THREE.AmbientLight | null;
     key: THREE.DirectionalLight | null;
@@ -39,6 +40,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [webglError, setWebglError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showAnimator, setShowAnimator] = useState(false);
@@ -68,15 +70,36 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     camera.position.set(0, 0, 5);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('WebGL context lost in GLBViewer');
+      setWebglError('WebGL context lost. Attempting to restore...');
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+
+    const handleContextRestored = () => {
+      console.log('WebGL context restored in GLBViewer');
+      setWebglError(null);
+    };
+
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -151,11 +174,31 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       }
     );
 
-    let animationFrameId: number;
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    let lastTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+
+    const animate = (currentTime: number = 0) => {
+      animationFrameRef.current = requestAnimationFrame(animate);
+
+      const deltaTime = currentTime - lastTime;
+
+      if (deltaTime < frameInterval) {
+        return;
+      }
+
+      lastTime = currentTime - (deltaTime % frameInterval);
+
+      try {
+        controls.update();
+        renderer.render(scene, camera);
+      } catch (error) {
+        console.error('Render error in GLBViewer:', error);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+      }
     };
     animate();
 
@@ -170,11 +213,14 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
 
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
 
       if (modelRef.current) {
         modelRef.current.traverse((child) => {

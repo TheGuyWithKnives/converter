@@ -1,5 +1,6 @@
 import { applyInstructionsToImage } from './instructionsProcessor';
 import { generateImageHash, getCachedModel, saveCachedModel } from './modelCache';
+import { globalDeduplicator } from './requestManager';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/trellis-image-to-3d`;
@@ -102,7 +103,12 @@ export async function generateModelFromImage(
 
   console.log('Cache miss - generating new model...');
 
-  checkRateLimit();
+  const requestKey = `model-${imageHash}-${instructions || 'none'}-${qualityPreset || 'quality'}-${allFiles.length}`;
+
+  return await globalDeduplicator.deduplicate(
+    requestKey,
+    async () => {
+      checkRateLimit();
 
   let filesToProcess = [file];
   if (additionalFiles && additionalFiles.length > 0) {
@@ -245,6 +251,9 @@ export async function generateModelFromImage(
   }
 
   throw new Error('Timeout waiting for model generation. Please try again.');
+    },
+    600000
+  );
 }
 
 export async function uploadImageToPublicUrl(file: File): Promise<string> {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { subdivideMesh, smoothMesh } from './meshSmoothing';
+import { validateMeshComplexity } from './sanitization';
 
 export interface MeshGenerationParams {
   resolution: number;
@@ -251,8 +252,19 @@ export async function generateMeshFromDepth(
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
 
-  console.log(`Initial mesh: ${vertices.length / 3} vertices, ${indices.length / 3} triangles`);
+  const vertexCount = vertices.length / 3;
+  const faceCount = indices.length / 3;
+
+  console.log(`Initial mesh: ${vertexCount} vertices, ${faceCount} triangles`);
   console.log(`Boundary edges: ${boundaryEdges.length}`);
+
+  const validation = validateMeshComplexity(vertexCount, faceCount);
+  if (!validation.valid) {
+    throw new Error(validation.warning || 'Mesh too complex');
+  }
+  if (validation.warning) {
+    console.warn(validation.warning);
+  }
 
   geometry = subdivideMesh(geometry, 1);
   console.log(`After subdivision: ${geometry.attributes.position.count} vertices`);

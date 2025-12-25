@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, X } from 'lucide-react';
+import { sanitizeInstructions } from '../services/sanitization';
 
 interface InstructionsChatProps {
   onInstructionsChange: (instructions: string) => void;
@@ -28,19 +29,31 @@ export default function InstructionsChat({ onInstructionsChange, disabled }: Ins
   const handleSend = () => {
     if (!input.trim() || disabled) return;
 
-    const newMessage = { text: input, type: 'user' as const };
-    setMessages((prev) => [...prev, newMessage]);
-    onInstructionsChange(input);
+    try {
+      const sanitized = sanitizeInstructions(input);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        text: 'Instrukce přidány! Budou zahrnuty při generování 3D modelu.',
-        type: 'system',
-      },
-    ]);
+      const newMessage = { text: sanitized, type: 'user' as const };
+      setMessages((prev) => [...prev, newMessage]);
+      onInstructionsChange(sanitized);
 
-    setInput('');
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: 'Instrukce přidány! Budou zahrnuty při generování 3D modelu.',
+          type: 'system',
+        },
+      ]);
+
+      setInput('');
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          text: error instanceof Error ? error.message : 'Neplatný vstup',
+          type: 'system',
+        },
+      ]);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -14,9 +14,11 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const currentMeshRef = useRef<THREE.Mesh | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const [lightIntensity, setLightIntensity] = useState(1);
   const [rotation, setRotation] = useState({ x: 0, y: 0, z: 0 });
   const [scale, setScale] = useState(1);
+  const [webglError, setWebglError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -34,11 +36,36 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
     camera.position.z = 5;
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+      failIfMajorPerformanceCaveat: false,
+    });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
+
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      console.warn('WebGL context lost');
+      setWebglError('WebGL context lost. Attempting to restore...');
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+
+    const handleContextRestored = () => {
+      console.log('WebGL context restored');
+      setWebglError(null);
+      if (sceneRef.current && cameraRef.current && rendererRef.current) {
+        animate();
+      }
+    };
+
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -64,10 +91,31 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
     const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
     scene.add(gridHelper);
 
-    const animate = () => {
-      requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
+    let lastTime = 0;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
+
+    const animate = (currentTime: number = 0) => {
+      animationFrameRef.current = requestAnimationFrame(animate);
+
+      const deltaTime = currentTime - lastTime;
+
+      if (deltaTime < frameInterval) {
+        return;
+      }
+
+      lastTime = currentTime - (deltaTime % frameInterval);
+
+      try {
+        controls.update();
+        renderer.render(scene, camera);
+      } catch (error) {
+        console.error('Render error:', error);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
+      }
     };
     animate();
 
@@ -80,10 +128,59 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
+
+      if (currentMeshRef.current) {
+        if (currentMeshRef.current.geometry) {
+          currentMeshRef.current.geometry.dispose();
+        }
+        if (currentMeshRef.current.material) {
+          if (Array.isArray(currentMeshRef.current.material)) {
+            currentMeshRef.current.material.forEach(m => {
+              m.dispose();
+              if (m.map) m.map.dispose();
+            });
+          } else {
+            currentMeshRef.current.material.dispose();
+            if (currentMeshRef.current.material.map) {
+              currentMeshRef.current.material.map.dispose();
+            }
+          }
+        }
+      }
+
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh) {
+          if (object.geometry) {
+            object.geometry.dispose();
+          }
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(m => {
+                m.dispose();
+                if (m.map) m.map.dispose();
+              });
+            } else {
+              object.material.dispose();
+              if (object.material.map) {
+                object.material.map.dispose();
+              }
+            }
+          }
+        }
+      });
+
       renderer.dispose();
       controls.dispose();
-      if (containerRef.current && renderer.domElement) {
+
+      if (containerRef.current && renderer.domElement.parentNode === containerRef.current) {
         containerRef.current.removeChild(renderer.domElement);
       }
     };
@@ -147,7 +244,14 @@ export default function ThreeViewer({ mesh, onMeshUpdate }: ThreeViewerProps) {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <div ref={containerRef} className="flex-1 w-full" />
+      <div ref={containerRef} className="flex-1 w-full relative">
+        {webglError && (
+          <div className="absolute top-4 left-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg z-10">
+            <p className="font-medium">{webglError}</p>
+            <p className="text-sm mt-1">This usually resolves automatically. If not, try refreshing the page.</p>
+          </div>
+        )}
+      </div>
 
       {mesh && (
         <div className="bg-slate-800 p-4 space-y-4">
