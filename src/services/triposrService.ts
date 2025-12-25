@@ -67,8 +67,12 @@ export async function generateModelFromImage(
   file: File,
   additionalFiles?: File[],
   instructions?: string,
-  qualityPreset?: QualityPreset
+  qualityPreset?: QualityPreset,
+  signal?: AbortSignal
 ): Promise<TripoSRResult> {
+  if (signal?.aborted) {
+    throw new Error('Request was cancelled before starting');
+  }
   console.log('Processing image(s) with instructions and multi-view...');
 
   const allFiles = [file, ...(additionalFiles || [])];
@@ -130,6 +134,10 @@ export async function generateModelFromImage(
   const preset = qualityPreset || 'quality';
   console.log(`🎯 Quality preset: ${preset}`);
 
+  if (signal?.aborted) {
+    throw new Error('Request was cancelled before API call');
+  }
+
   const response = await fetch(EDGE_FUNCTION_URL, {
     method: 'POST',
     headers: {
@@ -140,6 +148,7 @@ export async function generateModelFromImage(
       instructions: instructions || undefined,
       qualityPreset: preset,
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -162,7 +171,18 @@ export async function generateModelFromImage(
   let pollDelay = 2000;
 
   while (attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, pollDelay));
+    if (signal?.aborted) {
+      throw new Error('Request was cancelled during polling');
+    }
+
+    await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, pollDelay);
+      signal?.addEventListener('abort', () => {
+        clearTimeout(timeoutId);
+        reject(new Error('Request was cancelled'));
+      });
+    });
+
     pollDelay = Math.min(pollDelay * 1.15, 10000);
     attempts++;
 
@@ -176,6 +196,7 @@ export async function generateModelFromImage(
       body: JSON.stringify({
         predictionId,
       }),
+      signal,
     });
 
     if (!statusResponse.ok) {

@@ -214,11 +214,46 @@ Deno.serve(async (req: Request) => {
       },
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Edge Function error:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorName = error instanceof Error ? error.name : 'Error';
+
+    let statusCode = 500;
+    let userMessage = errorMessage;
+
+    if (errorMessage.includes('CORS')) {
+      statusCode = 403;
+      userMessage = 'Request origin not allowed';
+    } else if (errorMessage.includes('not configured')) {
+      statusCode = 503;
+      userMessage = 'Service temporarily unavailable';
+    } else if (errorMessage.includes('Maximum') || errorMessage.includes('too long')) {
+      statusCode = 400;
+      userMessage = errorMessage;
+    } else if (errorMessage.includes('Invalid')) {
+      statusCode = 400;
+      userMessage = errorMessage;
+    } else if (errorMessage.includes('timeout')) {
+      statusCode = 504;
+      userMessage = 'Request timeout';
+    }
+
+    console.error({
+      type: errorName,
+      message: errorMessage,
+      statusCode,
+      timestamp: new Date().toISOString(),
+    });
+
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: userMessage,
+        type: errorName,
+        timestamp: new Date().toISOString(),
+      }),
       {
-        status: 500,
+        status: statusCode,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',

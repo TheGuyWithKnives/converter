@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Box, Info, Sparkles, Images, Edit3 } from 'lucide-react';
+import { Box, Info, Sparkles, Images, Edit3, X } from 'lucide-react';
 import ImageUpload from './components/ImageUpload';
 import MultiImageUpload from './components/MultiImageUpload';
 import InstructionsChat from './components/InstructionsChat';
@@ -10,9 +10,7 @@ import GLBViewer from './components/GLBViewer';
 import ParameterControls from './components/ParameterControls';
 import ProgressBar from './components/ProgressBar';
 import ImageEditor from './components/ImageEditor';
-import { estimateDepth, depthMapToArray } from './services/depthEstimation';
 import { generateMeshFromDepth, MeshGenerationParams } from './services/meshGenerator';
-import { removeBackground } from './services/backgroundRemoval';
 import {
   exportToOBJ,
   exportToSTL,
@@ -57,6 +55,19 @@ function App() {
   const [showEditor, setShowEditor] = useState(false);
   const [editingFile, setEditingFile] = useState<File | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const cancelProcessing = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort('User cancelled');
+      abortControllerRef.current = null;
+      setIsProcessing(false);
+      setProgress(0);
+      setProgressMessage('');
+      console.log('Processing cancelled by user');
+    }
+  }, []);
+
   const processImageWithAI = useCallback(async (
     imageUrl: string,
     file: File,
@@ -64,6 +75,9 @@ function App() {
     userInstructions?: string,
     quality?: QualityPreset
   ) => {
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsProcessing(true);
     setProgress(0);
     setProgressMessage('Příprava obrázku...');
@@ -75,7 +89,7 @@ function App() {
       setProgressMessage(`Vytváření 3D modelu z ${imageCount} obrázků pomocí AI...`);
       setProgress(0.1);
 
-      const result = await generateModelFromImage(imageUrl, file, additionalFiles, userInstructions, quality || qualityPreset);
+      const result = await generateModelFromImage(imageUrl, file, additionalFiles, userInstructions, quality || qualityPreset, signal);
 
       setProgress(0.9);
       setProgressMessage('Model připraven!');
@@ -127,12 +141,14 @@ function App() {
 
         setProgressMessage('Odstranění pozadí...');
         setProgress(0.1);
+        const { removeBackground } = await import('./services/backgroundRemoval');
         const bgRemovalResult = await removeBackground(img, (p) => {
           setProgress(0.1 + p * 0.2);
         });
 
         setProgressMessage('Odhad hloubky z obrázku...');
         setProgress(0.3);
+        const { estimateDepth, depthMapToArray } = await import('./services/depthEstimation');
         const depthResult = await estimateDepth(
           bgRemovalResult.imageWithoutBg,
           bgRemovalResult.mask,
@@ -448,7 +464,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {isProcessing && <ProgressBar progress={progress} message={progressMessage} />}
+      {isProcessing && (
+        <ProgressBar
+          progress={progress}
+          message={progressMessage}
+          onCancel={cancelProcessing}
+          cancellable={true}
+        />
+      )}
 
       <header className="bg-slate-800 border-b border-slate-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-4">
