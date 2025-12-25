@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import * as THREE from 'three';
 import { Box, Info, Sparkles, Images, Edit3 } from 'lucide-react';
 import ImageUpload from './components/ImageUpload';
@@ -253,26 +253,63 @@ function App() {
       const processedFile = processedImages[0].file;
       const processedUrl = processedImages[0].processed;
 
-      if (processingMode === 'ai') {
-        processImageWithAI(processedUrl, processedFile, undefined, instructions);
-      } else {
-        processImageBasic(processedUrl);
-      }
+      const urlsToRevoke = processedImages.map(img => ({
+        original: img.original,
+        processed: img.hasChanges ? img.processed : null,
+      }));
+
+      const processPromise = processingMode === 'ai'
+        ? processImageWithAI(processedUrl, processedFile, undefined, instructions)
+        : processImageBasic(processedUrl);
+
+      setTimeout(() => {
+        urlsToRevoke.forEach(({ original, processed }) => {
+          try {
+            URL.revokeObjectURL(original);
+            if (processed) URL.revokeObjectURL(processed);
+          } catch (e) {
+            console.warn('Failed to revoke URL:', e);
+          }
+        });
+      }, 1000);
+
+      processPromise.catch((error) => {
+        console.error('Processing failed:', error);
+      });
     } else if (uploadMode === 'multi' && processedImages.length > 0) {
       const [mainImage, ...additionalImages] = processedImages;
       const additionalFiles = additionalImages.map(img => img.file);
 
+      const urlsToRevoke = processedImages.map(img => ({
+        original: img.original,
+        processed: img.hasChanges ? img.processed : null,
+      }));
+
       if (processingMode === 'ai') {
-        processImageWithAI(mainImage.processed, mainImage.file, additionalFiles, instructions);
+        const processPromise = processImageWithAI(
+          mainImage.processed,
+          mainImage.file,
+          additionalFiles,
+          instructions
+        );
+
+        setTimeout(() => {
+          urlsToRevoke.forEach(({ original, processed }) => {
+            try {
+              URL.revokeObjectURL(original);
+              if (processed) URL.revokeObjectURL(processed);
+            } catch (e) {
+              console.warn('Failed to revoke URL:', e);
+            }
+          });
+        }, 1000);
+
+        processPromise.catch((error) => {
+          console.error('Processing failed:', error);
+        });
       }
     }
 
-    processedImages.forEach(img => {
-      URL.revokeObjectURL(img.original);
-      if (img.hasChanges) {
-        URL.revokeObjectURL(img.processed);
-      }
-    });
     setProcessedImages([]);
   }, [uploadMode, processedImages, processingMode, processImageWithAI, processImageBasic, instructions]);
 
@@ -377,6 +414,37 @@ function App() {
     },
     [mesh, currentImage]
   );
+
+  useEffect(() => {
+    return () => {
+      if (currentImage) {
+        try {
+          URL.revokeObjectURL(currentImage.url);
+        } catch (e) {
+          console.warn('Failed to revoke URL on unmount:', e);
+        }
+      }
+
+      currentImages.urls.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.warn('Failed to revoke URL on unmount:', e);
+        }
+      });
+
+      processedImages.forEach(img => {
+        try {
+          URL.revokeObjectURL(img.original);
+          if (img.hasChanges) {
+            URL.revokeObjectURL(img.processed);
+          }
+        } catch (e) {
+          console.warn('Failed to revoke URL on unmount:', e);
+        }
+      });
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">

@@ -25,17 +25,37 @@ export interface TripoSRResult {
   error?: string;
 }
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_TOTAL_SIZE = 50 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
 async function fileToBase64(file: File): Promise<string> {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(
+      `Soubor ${file.name} je příliš velký (max 10MB). Aktuální velikost: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+    );
+  }
+
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error(
+      `Nepodporovaný formát souboru: ${file.type}. Podporované formáty: JPEG, PNG, WebP`
+    );
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
+        if (reader.result.length > MAX_FILE_SIZE * 1.5) {
+          reject(new Error('Soubor po konverzi překračuje maximální velikost'));
+          return;
+        }
         resolve(reader.result);
       } else {
         reject(new Error('Failed to convert file to base64'));
       }
     };
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('Chyba při čtení souboru'));
     reader.readAsDataURL(file);
   });
 }
@@ -50,6 +70,19 @@ export async function generateModelFromImage(
   qualityPreset?: QualityPreset
 ): Promise<TripoSRResult> {
   console.log('Processing image(s) with instructions and multi-view...');
+
+  const allFiles = [file, ...(additionalFiles || [])];
+  const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
+
+  if (totalSize > MAX_TOTAL_SIZE) {
+    throw new Error(
+      `Celková velikost souborů přesahuje limit (max 50MB). Aktuální: ${(totalSize / 1024 / 1024).toFixed(2)}MB`
+    );
+  }
+
+  if (allFiles.length > 10) {
+    throw new Error('Maximální počet obrázků je 10');
+  }
 
   const imageHash = await generateImageHash(file);
   console.log('Image hash:', imageHash.substring(0, 16) + '...');

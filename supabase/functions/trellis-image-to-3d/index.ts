@@ -1,21 +1,50 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:4173',
-];
+const getAllowedOrigins = (): string[] => {
+  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
+
+  if (envOrigins) {
+    return envOrigins.split(',').map(o => o.trim());
+  }
+
+  return [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:4173',
+  ];
+};
+
+const allowedOrigins = getAllowedOrigins();
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  const isAllowed = origin && allowedOrigins.includes(origin);
+
+  if (!isAllowed && Deno.env.get('ENV') === 'production') {
+    throw new Error('CORS: Origin not allowed');
+  }
+
+  const corsOrigin = isAllowed ? origin : allowedOrigins[0];
+
   return {
     "Access-Control-Allow-Origin": corsOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+    "Access-Control-Allow-Credentials": "true",
   };
 }
 
 const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN');
+
+if (!REPLICATE_API_TOKEN) {
+  console.error('CRITICAL: REPLICATE_API_TOKEN environment variable is not set!');
+  throw new Error('Server misconfiguration: Missing API token');
+}
+
+if (!REPLICATE_API_TOKEN.startsWith('r8_')) {
+  console.warn('WARNING: REPLICATE_API_TOKEN has unexpected format');
+}
+
+console.log(`REPLICATE_API_TOKEN loaded (length: ${REPLICATE_API_TOKEN.length})`);
 const TRELLIS_MODEL_VERSION = 'e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c';
 
 interface RequestBody {

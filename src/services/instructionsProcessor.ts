@@ -6,15 +6,55 @@ export interface InstructionEffect {
   denoise?: boolean;
 }
 
+const DANGEROUS_PATTERNS = [
+  /system[\s\u200B-\u200D\uFEFF]*:/gi,
+  /ignore[\s\u200B-\u200D\uFEFF]*:/gi,
+  /forget[\s\u200B-\u200D\uFEFF]*(previous|all|everything)/gi,
+  /previous[\s\u200B-\u200D\uFEFF]*instructions?/gi,
+  /new[\s\u200B-\u200D\uFEFF]*instructions?[\s\u200B-\u200D\uFEFF]*:/gi,
+  /you[\s\u200B-\u200D\uFEFF]*are[\s\u200B-\u200D\uFEFF]*(now|a)/gi,
+  /act[\s\u200B-\u200D\uFEFF]*as[\s\u200B-\u200D\uFEFF]*(if|a)/gi,
+  /pretend[\s\u200B-\u200D\uFEFF]*(to|you)/gi,
+  /<script[^>]*>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi,
+  /eval\s*\(/gi,
+  /expression\s*\(/gi,
+];
+
+const ALLOWED_CHARS_REGEX = /^[a-zA-Z0-9\sáčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ.,!?%\-+()]+$/;
+
 export function sanitizeInstructions(instructions: string): string {
-  return instructions
-    .replace(/system\s*:/gi, '')
-    .replace(/ignore\s*:/gi, '')
-    .replace(/forget\s*:/gi, '')
-    .replace(/previous\s+instructions/gi, '')
-    .replace(/[<>{}[\]\\]/g, '')
-    .slice(0, 2000)
+  if (!instructions || typeof instructions !== 'string') {
+    return '';
+  }
+
+  if (instructions.length > 2000) {
+    throw new Error('Instructions too long (max 2000 characters)');
+  }
+
+  for (const pattern of DANGEROUS_PATTERNS) {
+    if (pattern.test(instructions)) {
+      console.warn('Dangerous pattern detected in instructions:', pattern);
+      throw new Error('Invalid instructions: contains forbidden patterns');
+    }
+  }
+
+  let sanitized = instructions
+    .replace(/[<>{}[\]\\`|~@#$^&*_=;:'"]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
+
+  if (sanitized.length < 3) {
+    return '';
+  }
+
+  if (!ALLOWED_CHARS_REGEX.test(sanitized)) {
+    console.warn('Instructions contain disallowed characters');
+    throw new Error('Instructions contain invalid characters');
+  }
+
+  return sanitized;
 }
 
 export function parseInstructions(instructions: string): InstructionEffect {
@@ -22,33 +62,43 @@ export function parseInstructions(instructions: string): InstructionEffect {
   const lower = sanitized.toLowerCase();
   const effect: InstructionEffect = {};
 
+  let effectCount = 0;
+
   if (lower.includes('světlejší') || lower.includes('světlý') || lower.includes('brighten')) {
     effect.brightness = 1.2;
+    effectCount++;
   }
   if (lower.includes('tmavší') || lower.includes('tmavý') || lower.includes('darken')) {
     effect.brightness = 0.8;
+    effectCount++;
   }
 
   if (lower.includes('více kontrastu') || lower.includes('kontrastní') || lower.includes('contrast')) {
     effect.contrast = 1.3;
+    effectCount++;
   }
   if (lower.includes('méně kontrastu') || lower.includes('měkký')) {
     effect.contrast = 0.7;
+    effectCount++;
   }
 
   if (lower.includes('sytější') || lower.includes('barevný') || lower.includes('saturate')) {
     effect.saturation = 1.4;
+    effectCount++;
   }
   if (lower.includes('nenasycený') || lower.includes('šedivý') || lower.includes('desaturate')) {
     effect.saturation = 0.6;
+    effectCount++;
   }
 
   if (lower.includes('ostřejší') || lower.includes('ostrý') || lower.includes('sharp')) {
     effect.sharpness = 1.5;
+    effectCount++;
   }
 
   if (lower.includes('vyhlazený') || lower.includes('čistý') || lower.includes('denoise')) {
     effect.denoise = true;
+    effectCount++;
   }
 
   if (
@@ -59,6 +109,11 @@ export function parseInstructions(instructions: string): InstructionEffect {
   ) {
     effect.sharpness = 1.3;
     effect.contrast = 1.1;
+    effectCount++;
+  }
+
+  if (effectCount > 5) {
+    throw new Error('Příliš mnoho efektů najednou (max 5)');
   }
 
   return effect;
@@ -118,7 +173,24 @@ export async function applyInstructionsToImage(
   console.log('applyInstructionsToImage - Converting canvas to blob...');
 
   return new Promise((resolve, reject) => {
+    let resolved = false;
+
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        reject(new Error('Image processing timeout after 10 seconds'));
+      }
+    }, 10000);
+
     canvas.toBlob((blob) => {
+      if (resolved) {
+        console.warn('Blob callback called after timeout');
+        return;
+      }
+
+      clearTimeout(timeoutId);
+      resolved = true;
+
       if (!blob) {
         console.error('applyInstructionsToImage - Failed to create blob');
         reject(new Error('Failed to process image'));
@@ -228,12 +300,19 @@ function loadImage(file: File): Promise<HTMLImageElement> {
     const img = new Image();
     const url = URL.createObjectURL(file);
 
+    const timeoutId = setTimeout(() => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Image load timeout after 30 seconds'));
+    }, 30000);
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       URL.revokeObjectURL(url);
       resolve(img);
     };
 
     img.onerror = () => {
+      clearTimeout(timeoutId);
       URL.revokeObjectURL(url);
       reject(new Error('Failed to load image'));
     };

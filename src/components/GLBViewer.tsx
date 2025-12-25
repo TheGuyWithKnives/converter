@@ -151,8 +151,9 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       }
     );
 
+    let animationFrameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
     };
@@ -169,28 +170,75 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+
       window.removeEventListener('resize', handleResize);
 
       if (modelRef.current) {
         modelRef.current.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             child.geometry?.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach(m => m.dispose());
-            } else {
-              child.material?.dispose();
-            }
+
+            const materials = Array.isArray(child.material)
+              ? child.material
+              : [child.material];
+
+            materials.forEach(material => {
+              if (material) {
+                Object.keys(material).forEach(key => {
+                  const value = (material as any)[key];
+                  if (value instanceof THREE.Texture) {
+                    value.dispose();
+                  }
+                });
+                material.dispose();
+              }
+            });
           }
         });
         scene.remove(modelRef.current);
       }
 
-      if (containerRef.current && renderer.domElement) {
+      if (lightsRef.current.ambient) {
+        scene.remove(lightsRef.current.ambient);
+        lightsRef.current.ambient = null;
+      }
+      if (lightsRef.current.key) {
+        scene.remove(lightsRef.current.key);
+        lightsRef.current.key = null;
+      }
+      if (lightsRef.current.fill) {
+        scene.remove(lightsRef.current.fill);
+        lightsRef.current.fill = null;
+      }
+      if (lightsRef.current.rim) {
+        scene.remove(lightsRef.current.rim);
+        lightsRef.current.rim = null;
+      }
+
+      if (gridRef.current) {
+        scene.remove(gridRef.current);
+        gridRef.current.geometry?.dispose();
+        (gridRef.current.material as THREE.Material)?.dispose();
+        gridRef.current = null;
+      }
+
+      if (controlsRef.current) {
+        controlsRef.current.dispose();
+        controlsRef.current = null;
+      }
+
+      if (containerRef.current && renderer.domElement.parentNode) {
         containerRef.current.removeChild(renderer.domElement);
       }
 
       renderer.dispose();
-      controls.dispose();
+      rendererRef.current = null;
+
+      scene.clear();
+      sceneRef.current = null;
     };
   }, [modelUrl]);
 
