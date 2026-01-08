@@ -129,7 +129,7 @@ export async function generateModelFromImage(
     filesToProcess.map(f => fileToBase64(f))
   );
 
-  console.log(`Starting Replicate TRELLIS prediction with ${dataUrls.length} image(s)...`);
+  console.log(`Starting Meshy.ai image-to-3D with ${dataUrls.length} image(s)...`);
   if (instructions) {
     console.log('Instructions were preprocessed and applied to all images:', instructions);
   }
@@ -164,13 +164,13 @@ export async function generateModelFromImage(
   }
 
   const prediction = await response.json();
-  const predictionId = prediction.id;
+  const taskId = prediction.id;
 
-  if (!predictionId) {
-    throw new Error('No prediction ID received');
+  if (!taskId) {
+    throw new Error('No task ID received');
   }
 
-  console.log('Polling for result with prediction ID:', predictionId);
+  console.log('Polling for result with task ID:', taskId);
 
   const maxAttempts = 90;
   let attempts = 0;
@@ -200,35 +200,30 @@ export async function generateModelFromImage(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        predictionId,
+        taskId,
       }),
       signal,
     });
 
     if (!statusResponse.ok) {
-      console.error('Failed to get prediction status');
+      console.error('Failed to get task status');
       continue;
     }
 
     const statusData = await statusResponse.json();
     console.log(`📊 Status: ${statusData.status}`);
 
-    if (statusData.status === 'succeeded') {
-      const output = statusData.output;
-      console.log('✅ Generation succeeded! Full output:', JSON.stringify(output, null, 2));
+    if (statusData.progress) {
+      console.log(`⚙️ Progress: ${statusData.progress}%`);
+    }
 
-      if (!output) {
-        console.error('❌ No output object received');
-        throw new Error('Invalid output from Replicate - no output object');
-      }
-
-      // TRELLIS může vracet různé formáty
-      const glbUrl = output.model_file || output.glb || output.model || output;
-      console.log('🔍 Extracted GLB URL:', glbUrl);
+    if (statusData.status === 'SUCCEEDED') {
+      const glbUrl = statusData.output;
+      console.log('✅ Generation succeeded! GLB URL:', glbUrl);
 
       if (!glbUrl || typeof glbUrl !== 'string') {
-        console.error('❌ Could not find valid GLB URL in output:', output);
-        throw new Error('Invalid output from Replicate - no model file URL found');
+        console.error('❌ Could not find valid GLB URL in output:', statusData);
+        throw new Error('Invalid output from Meshy.ai - no model file URL found');
       }
 
       console.log('Model ready at:', glbUrl);
@@ -241,11 +236,11 @@ export async function generateModelFromImage(
       };
     }
 
-    if (statusData.status === 'failed') {
+    if (statusData.status === 'FAILED') {
       throw new Error(statusData.error || 'Model generation failed');
     }
 
-    if (statusData.status === 'canceled') {
+    if (statusData.status === 'CANCELLED' || statusData.status === 'CANCELED') {
       throw new Error('Model generation was canceled');
     }
   }

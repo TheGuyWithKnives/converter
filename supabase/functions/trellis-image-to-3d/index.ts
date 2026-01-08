@@ -33,32 +33,25 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-const REPLICATE_API_TOKEN = Deno.env.get('REPLICATE_API_TOKEN');
+const MESHY_API_KEY = Deno.env.get('MESHY_API_KEY') || 'msy_DmPgszUdPl98438eI5SEb3Fe7msY2W3H25nv';
 
-if (!REPLICATE_API_TOKEN) {
-  console.error('CRITICAL: REPLICATE_API_TOKEN environment variable is not set!');
+if (!MESHY_API_KEY) {
+  console.error('CRITICAL: MESHY_API_KEY environment variable is not set!');
   throw new Error('Server misconfiguration: Missing API token');
 }
 
-if (!REPLICATE_API_TOKEN.startsWith('r8_')) {
-  console.warn('WARNING: REPLICATE_API_TOKEN has unexpected format');
+if (!MESHY_API_KEY.startsWith('msy_')) {
+  console.warn('WARNING: MESHY_API_KEY has unexpected format');
 }
 
-console.log(`REPLICATE_API_TOKEN loaded (length: ${REPLICATE_API_TOKEN.length})`);
-const TRELLIS_MODEL_VERSION = 'e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c';
+console.log(`MESHY_API_KEY loaded (length: ${MESHY_API_KEY.length})`);
 
 interface RequestBody {
   image?: string;
   images?: string[];
   instructions?: string;
-  predictionId?: string;
+  taskId?: string;
   qualityPreset?: 'fast' | 'quality' | 'ultra';
-  advancedParams?: {
-    ss_sampling_steps?: number;
-    ss_guidance_strength?: number;
-    slat_sampling_steps?: number;
-    slat_guidance_strength?: number;
-  };
 }
 
 Deno.serve(async (req: Request) => {
@@ -73,13 +66,13 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log('REPLICATE_API_TOKEN available:', !!REPLICATE_API_TOKEN);
+    console.log('MESHY_API_KEY available:', !!MESHY_API_KEY);
 
-    if (!REPLICATE_API_TOKEN) {
-      throw new Error('REPLICATE_API_TOKEN not configured');
+    if (!MESHY_API_KEY) {
+      throw new Error('MESHY_API_KEY not configured');
     }
 
-    const { image, images, instructions, predictionId, qualityPreset, advancedParams }: RequestBody = await req.json();
+    const { image, images, instructions, taskId, qualityPreset }: RequestBody = await req.json();
 
     if (images && images.length > 10) {
       throw new Error('Maximum 10 images allowed');
@@ -96,30 +89,13 @@ Deno.serve(async (req: Request) => {
       throw new Error('Instructions too long (maximum 5000 characters)');
     }
 
-    if (advancedParams) {
-      const { ss_sampling_steps, slat_sampling_steps, ss_guidance_strength, slat_guidance_strength } = advancedParams;
-
-      if (ss_sampling_steps && (ss_sampling_steps < 1 || ss_sampling_steps > 100)) {
-        throw new Error('Invalid ss_sampling_steps (must be 1-100)');
-      }
-      if (slat_sampling_steps && (slat_sampling_steps < 1 || slat_sampling_steps > 100)) {
-        throw new Error('Invalid slat_sampling_steps (must be 1-100)');
-      }
-      if (ss_guidance_strength && (ss_guidance_strength < 0 || ss_guidance_strength > 20)) {
-        throw new Error('Invalid ss_guidance_strength (must be 0-20)');
-      }
-      if (slat_guidance_strength && (slat_guidance_strength < 0 || slat_guidance_strength > 20)) {
-        throw new Error('Invalid slat_guidance_strength (must be 0-20)');
-      }
-    }
-
-    if (predictionId) {
-      console.log('Checking status for prediction:', predictionId);
+    if (taskId) {
+      console.log('Checking status for task:', taskId);
       const statusResponse = await fetch(
-        `https://api.replicate.com/v1/predictions/${predictionId}`,
+        `https://api.meshy.ai/v2/image-to-3d/${taskId}`,
         {
           headers: {
-            'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
+            'Authorization': `Bearer ${MESHY_API_KEY}`,
           },
         }
       );
@@ -127,12 +103,18 @@ Deno.serve(async (req: Request) => {
       if (!statusResponse.ok) {
         const errorText = await statusResponse.text();
         console.error('Status check failed:', errorText);
-        throw new Error(`Failed to get prediction status: ${errorText}`);
+        throw new Error(`Failed to get task status: ${errorText}`);
       }
 
       const statusData = await statusResponse.json();
 
-      return new Response(JSON.stringify(statusData), {
+      return new Response(JSON.stringify({
+        id: statusData.id,
+        status: statusData.status,
+        output: statusData.model_urls?.glb || statusData.model_url,
+        progress: statusData.progress,
+        error: statusData.error,
+      }), {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
@@ -140,74 +122,59 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const imageArray = images && images.length > 0 ? images : [image];
+    const imageToUse = images && images.length > 0 ? images[0] : image;
 
-    console.log('Starting new prediction with', imageArray.length, 'image(s)...');
+    if (!imageToUse) {
+      throw new Error('No image provided');
+    }
+
+    console.log('Starting new image-to-3D task...');
     if (instructions) {
       console.log('Custom instructions:', instructions);
     }
 
-    const qualityPresets = {
-      fast: {
-        ss_sampling_steps: 12,
-        ss_guidance_strength: 7.5,
-        slat_sampling_steps: 12,
-        slat_guidance_strength: 3,
-      },
-      quality: {
-        ss_sampling_steps: 20,
-        ss_guidance_strength: 8,
-        slat_sampling_steps: 20,
-        slat_guidance_strength: 4,
-      },
-      ultra: {
-        ss_sampling_steps: 30,
-        ss_guidance_strength: 9,
-        slat_sampling_steps: 30,
-        slat_guidance_strength: 5,
-      },
+    const qualitySettings: Record<string, string> = {
+      fast: 'preview',
+      quality: 'draft',
+      ultra: 'refine',
     };
 
-    const preset = qualityPreset || 'quality';
-    const samplingParams = advancedParams || qualityPresets[preset];
+    const quality = qualitySettings[qualityPreset || 'quality'];
 
-    console.log('Quality preset:', preset);
-    console.log('Sampling parameters:', samplingParams);
+    console.log('Quality preset:', qualityPreset || 'quality', '→', quality);
 
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const requestBody: any = {
+      image_url: imageToUse,
+      enable_pbr: true,
+      ai_model: quality,
+    };
+
+    if (instructions) {
+      requestBody.name = instructions.substring(0, 100);
+    }
+
+    const response = await fetch('https://api.meshy.ai/v2/image-to-3d', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${REPLICATE_API_TOKEN}`,
+        'Authorization': `Bearer ${MESHY_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        version: TRELLIS_MODEL_VERSION,
-        input: {
-          images: imageArray,
-          seed: 0,
-          texture_size: 2048,
-          mesh_simplify: 0.92,
-          generate_color: true,
-          generate_model: true,
-          randomize_seed: true,
-          ss_sampling_steps: samplingParams.ss_sampling_steps,
-          ss_guidance_strength: samplingParams.ss_guidance_strength,
-          slat_sampling_steps: samplingParams.slat_sampling_steps,
-          slat_guidance_strength: samplingParams.slat_guidance_strength,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Replicate API error:', response.status, errorText);
+      console.error('Meshy API error:', response.status, errorText);
       throw new Error(`Failed to start generation (${response.status}): ${errorText}`);
     }
 
-    const prediction = await response.json();
-    console.log('Prediction started:', prediction.id);
+    const result = await response.json();
+    console.log('Task started:', result.result || result.id);
 
-    return new Response(JSON.stringify(prediction), {
+    return new Response(JSON.stringify({
+      id: result.result || result.id,
+      status: 'PENDING',
+    }), {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/json',
@@ -231,7 +198,7 @@ Deno.serve(async (req: Request) => {
     } else if (errorMessage.includes('Maximum') || errorMessage.includes('too long')) {
       statusCode = 400;
       userMessage = errorMessage;
-    } else if (errorMessage.includes('Invalid')) {
+    } else if (errorMessage.includes('Invalid') || errorMessage.includes('No image')) {
       statusCode = 400;
       userMessage = errorMessage;
     } else if (errorMessage.includes('timeout')) {
