@@ -1,32 +1,28 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const getAllowedOrigins = (): string[] => {
-  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
+function isOriginAllowed(origin: string | null): boolean {
+  if (!origin) return false;
 
+  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
   if (envOrigins) {
-    return envOrigins.split(',').map(o => o.trim());
+    const allowedList = envOrigins.split(',').map(o => o.trim());
+    return allowedList.includes(origin);
   }
 
-  return [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:4173',
-  ];
-};
+  if (origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('webcontainer')) {
+    return true;
+  }
 
-const allowedOrigins = getAllowedOrigins();
+  return false;
+}
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  const isAllowed = origin && allowedOrigins.includes(origin);
-
-  if (!isAllowed && Deno.env.get('ENV') === 'production') {
-    throw new Error('CORS: Origin not allowed');
-  }
-
-  const corsOrigin = isAllowed ? origin : allowedOrigins[0];
+  const isAllowed = isOriginAllowed(origin);
 
   return {
-    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Origin": isAllowed && origin ? origin : "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
     "Access-Control-Allow-Credentials": "true",
