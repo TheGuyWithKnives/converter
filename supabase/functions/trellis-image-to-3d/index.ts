@@ -104,12 +104,19 @@ Deno.serve(async (req: Request) => {
 
       const statusData = await statusResponse.json();
 
+      console.log('Status data received:', JSON.stringify({
+        id: statusData.id,
+        status: statusData.status,
+        hasModelUrls: !!statusData.model_urls,
+        glbUrl: statusData.model_urls?.glb,
+      }));
+
       return new Response(JSON.stringify({
         id: statusData.id,
         status: statusData.status,
         output: statusData.model_urls?.glb || statusData.model_url,
         progress: statusData.progress,
-        error: statusData.error,
+        error: statusData.task_error?.message || statusData.error,
       }), {
         headers: {
           ...corsHeaders,

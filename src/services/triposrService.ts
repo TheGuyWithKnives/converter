@@ -211,10 +211,14 @@ export async function generateModelFromImage(
     }
 
     const statusData = await statusResponse.json();
-    console.log(`📊 Status: ${statusData.status}`);
+    console.log(`📊 Status: ${statusData.status}`, statusData);
 
     if (statusData.progress) {
       console.log(`⚙️ Progress: ${statusData.progress}%`);
+    }
+
+    if (statusData.error) {
+      console.error('❌ Error from server:', statusData.error);
     }
 
     if (statusData.status === 'SUCCEEDED') {
@@ -237,7 +241,9 @@ export async function generateModelFromImage(
     }
 
     if (statusData.status === 'FAILED') {
-      throw new Error(statusData.error || 'Model generation failed');
+      const errorMsg = statusData.error || 'Model generation failed';
+      console.error('Generation failed:', errorMsg);
+      throw new Error(errorMsg);
     }
 
     if (statusData.status === 'CANCELLED' || statusData.status === 'CANCELED') {
