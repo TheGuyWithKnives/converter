@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
     if (taskId) {
       console.log('Checking status for task:', taskId);
       const statusResponse = await fetch(
-        `https://api.meshy.ai/v2/image-to-3d/${taskId}`,
+        `https://api.meshy.ai/openapi/v1/image-to-3d/${taskId}`,
         {
           headers: {
             'Authorization': `Bearer ${MESHY_API_KEY}`,
@@ -130,26 +130,26 @@ Deno.serve(async (req: Request) => {
     }
 
     const qualitySettings: Record<string, string> = {
-      fast: 'preview',
-      quality: 'draft',
-      ultra: 'refine',
+      fast: 'meshy-4',
+      quality: 'meshy-5',
+      ultra: 'latest',
     };
 
-    const quality = qualitySettings[qualityPreset || 'quality'];
+    const aiModel = qualitySettings[qualityPreset || 'quality'];
 
-    console.log('Quality preset:', qualityPreset || 'quality', '→', quality);
+    console.log('Quality preset:', qualityPreset || 'quality', '→', aiModel);
 
     const requestBody: any = {
       image_url: imageToUse,
       enable_pbr: true,
-      ai_model: quality,
+      ai_model: aiModel,
     };
 
     if (instructions) {
-      requestBody.name = instructions.substring(0, 100);
+      requestBody.texture_prompt = instructions.substring(0, 600);
     }
 
-    const response = await fetch('https://api.meshy.ai/v2/image-to-3d', {
+    const response = await fetch('https://api.meshy.ai/openapi/v1/image-to-3d', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${MESHY_API_KEY}`,
