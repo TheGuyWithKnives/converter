@@ -1,4 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 function isOriginAllowed(origin: string | null): boolean {
   if (!origin) return false;
@@ -41,6 +46,40 @@ if (!MESHY_API_KEY.startsWith('msy_')) {
 }
 
 console.log(`MESHY_API_KEY loaded (length: ${MESHY_API_KEY.length})`);
+
+async function downloadAndStoreModel(glbUrl: string, taskId: string): Promise<string> {
+  console.log('Downloading GLB from Meshy:', glbUrl);
+
+  const glbResponse = await fetch(glbUrl);
+  if (!glbResponse.ok) {
+    throw new Error(`Failed to download GLB: ${glbResponse.status}`);
+  }
+
+  const glbBlob = await glbResponse.blob();
+  const glbArrayBuffer = await glbBlob.arrayBuffer();
+
+  console.log('Uploading to Supabase Storage...');
+
+  const fileName = `models/${taskId}.glb`;
+  const { data, error } = await supabase.storage
+    .from('3d-models')
+    .upload(fileName, glbArrayBuffer, {
+      contentType: 'model/gltf-binary',
+      upsert: true,
+    });
+
+  if (error) {
+    console.error('Storage upload error:', error);
+    throw new Error(`Failed to upload to storage: ${error.message}`);
+  }
+
+  const { data: urlData } = supabase.storage
+    .from('3d-models')
+    .getPublicUrl(fileName);
+
+  console.log('Model stored at:', urlData.publicUrl);
+  return urlData.publicUrl;
+}
 
 interface RequestBody {
   image?: string;
@@ -111,10 +150,20 @@ Deno.serve(async (req: Request) => {
         glbUrl: statusData.model_urls?.glb,
       }));
 
+      let outputUrl = statusData.model_urls?.glb || statusData.model_url;
+
+      if (statusData.status === 'SUCCEEDED' && outputUrl) {
+        try {
+          outputUrl = await downloadAndStoreModel(outputUrl, statusData.id);
+        } catch (storageError) {
+          console.error('Failed to store model, using original URL:', storageError);
+        }
+      }
+
       return new Response(JSON.stringify({
         id: statusData.id,
         status: statusData.status,
-        output: statusData.model_urls?.glb || statusData.model_url,
+        output: outputUrl,
         progress: statusData.progress,
         error: statusData.task_error?.message || statusData.error,
       }), {
