@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Box, Info, Sparkles, Images, Edit3, X } from 'lucide-react';
+import { Box, Info, Sparkles, Images, Edit3, X, Layout, Layers, Upload } from 'lucide-react';
 import ImageUpload from './components/ImageUpload';
 import MultiImageUpload from './components/MultiImageUpload';
 import InstructionsChat from './components/InstructionsChat';
 import ImagePreviewGallery from './components/ImagePreviewGallery';
 import ThreeViewer from './components/ThreeViewer';
 import GLBViewer from './components/GLBViewer';
+import EnhancedGLBViewer from './components/EnhancedGLBViewer';
 import ParameterControls from './components/ParameterControls';
 import ProgressBar from './components/ProgressBar';
 import ImageEditor from './components/ImageEditor';
@@ -54,6 +55,8 @@ function App() {
   const [qualityPreset, setQualityPreset] = useState<QualityPreset>('quality');
   const [showEditor, setShowEditor] = useState(false);
   const [editingFile, setEditingFile] = useState<File | null>(null);
+  const [useEnhancedViewer, setUseEnhancedViewer] = useState(true);
+  const [activeTab, setActiveTab] = useState<'upload' | 'viewer'>('upload');
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -105,6 +108,7 @@ function App() {
       setTimeout(() => {
         setIsProcessing(false);
         setProgress(0);
+        setActiveTab('viewer');
       }, 500);
     } catch (error) {
       console.error('AI processing error:', error);
@@ -184,6 +188,7 @@ function App() {
         setTimeout(() => {
           setIsProcessing(false);
           setProgress(0);
+          setActiveTab('viewer');
         }, 500);
       } catch (error) {
         console.error('Chyba při zpracování:', error);
@@ -463,7 +468,7 @@ function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="h-screen flex flex-col bg-slate-900">
       {isProcessing && (
         <ProgressBar
           progress={progress}
@@ -473,25 +478,52 @@ function App() {
         />
       )}
 
-      <header className="bg-slate-800 border-b border-slate-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <header className="bg-slate-800 border-b border-slate-700 shadow-lg flex-shrink-0">
+        <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center shadow-lg">
               <Box className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">2D → 3D Converter</h1>
-              <p className="text-sm text-slate-400">
-                Převod obrázků na 3D modely pomocí AI
-              </p>
+              <h1 className="text-xl font-bold text-white">3D Studio Pro</h1>
+              <p className="text-xs text-slate-400">Professional 2D to 3D Converter</p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                activeTab === 'upload'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              <Upload className="w-4 h-4" />
+              Upload & Generate
+            </button>
+            <button
+              onClick={() => setActiveTab('viewer')}
+              disabled={!mesh && !aiModelUrl}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                activeTab === 'viewer'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <Layout className="w-4 h-4" />
+              3D Viewer
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+      <main className="flex-1 overflow-hidden">
+        {activeTab === 'upload' && (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-6 py-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-800">
@@ -685,7 +717,7 @@ function App() {
             </div>
 
             {(mesh || aiModelUrl) && (
-              <div className="bg-white rounded-lg shadow-lg overflow-hidden h-[600px]">
+              <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden h-[600px] border border-slate-700">
                 <div className="h-full">
                   {aiModelUrl ? (
                     <GLBViewer modelUrl={aiModelUrl} />
@@ -781,15 +813,28 @@ function App() {
                 <li>• Experimenty s parametry vyhlazení</li>
               </ul>
             </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </main>
+        )}
 
-      <footer className="bg-slate-800 border-t border-slate-700 mt-12">
-        <div className="max-w-7xl mx-auto px-6 py-6 text-center text-slate-400 text-sm">
-          <p>Využívá TensorFlow.js a Three.js pro zpracování a rendering</p>
-        </div>
-      </footer>
+        {activeTab === 'viewer' && (mesh || aiModelUrl) && (
+          <div className="h-full">
+            {aiModelUrl && useEnhancedViewer ? (
+              <EnhancedGLBViewer modelUrl={aiModelUrl} />
+            ) : aiModelUrl ? (
+              <div className="h-full bg-slate-800">
+                <GLBViewer modelUrl={aiModelUrl} />
+              </div>
+            ) : mesh ? (
+              <div className="h-full bg-slate-800">
+                <ThreeViewer mesh={mesh} />
+              </div>
+            ) : null}
+          </div>
+        )}
+      </main>
 
       {showEditor && editingFile && (
         <ImageEditor
