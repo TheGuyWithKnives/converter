@@ -22,7 +22,6 @@ import {
 import { generateModelFromImage, QualityPreset } from './services/triposrService';
 import { applyInstructionsToImage } from './services/instructionsProcessor';
 
-type ProcessingMode = 'basic' | 'ai';
 type UploadMode = 'single' | 'multi';
 
 interface ProcessedImage {
@@ -42,12 +41,6 @@ function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
-  const [processingMode, setProcessingMode] = useState<ProcessingMode>('ai');
-  const [params, setParams] = useState<MeshGenerationParams>({
-    resolution: 3,
-    depthScale: 3.0,
-    smoothness: 0.5,
-  });
 
   const [showPreview, setShowPreview] = useState(false);
   const [processedImages, setProcessedImages] = useState<ProcessedImage[]>([]);
@@ -115,90 +108,15 @@ function App() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('loading')) {
-        alert(`TripoSR model se načítá...\n\nProsím počkejte cca 20 sekund a zkuste to znovu.\n\nMezitím můžete použít Basic Mode.`);
+        alert(`TripoSR model se načítá...\n\nProsím počkejte cca 20 sekund a zkuste to znovu.`);
       } else {
-        alert(`AI Mode Error: ${errorMessage}\n\nZkuste to prosím znovu za chvíli, nebo použijte Basic Mode.`);
+        alert(`Chyba při generování: ${errorMessage}\n\nZkuste to prosím znovu za chvíli.`);
       }
 
       setIsProcessing(false);
       setProgress(0);
     }
   }, [qualityPreset]);
-
-  const processImageBasic = useCallback(
-    async (imageUrl: string) => {
-      setIsProcessing(true);
-      setProgress(0);
-      setProgressMessage('Načítání obrázku...');
-      setAiModelUrl(null);
-      setMesh(null);
-
-      try {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = imageUrl;
-        });
-
-        setProgressMessage('Odstranění pozadí...');
-        setProgress(0.1);
-        const { removeBackground } = await import('./services/backgroundRemoval');
-        const bgRemovalResult = await removeBackground(img, (p) => {
-          setProgress(0.1 + p * 0.2);
-        });
-
-        setProgressMessage('Odhad hloubky z obrázku...');
-        setProgress(0.3);
-        const { estimateDepth, depthMapToArray } = await import('./services/depthEstimation');
-        const depthResult = await estimateDepth(
-          bgRemovalResult.imageWithoutBg,
-          bgRemovalResult.mask,
-          (p) => {
-            setProgress(0.3 + p * 0.3);
-          }
-        );
-
-        setProgressMessage('Převod depth mapy na pole dat...');
-        setProgress(0.6);
-        const depthArray = await depthMapToArray(depthResult.depthMap);
-
-        setProgressMessage('Generování 3D modelu...');
-        setProgress(0.7);
-
-        const canvasUrl = bgRemovalResult.imageWithoutBg.toDataURL();
-
-        const generatedMesh = await generateMeshFromDepth(
-          canvasUrl,
-          depthArray,
-          depthResult.width,
-          depthResult.height,
-          params,
-          bgRemovalResult.mask
-        );
-
-        depthResult.depthMap.dispose();
-
-        setProgress(1);
-        setProgressMessage('Hotovo!');
-        setMesh(generatedMesh);
-
-        setTimeout(() => {
-          setIsProcessing(false);
-          setProgress(0);
-          setActiveTab('viewer');
-        }, 500);
-      } catch (error) {
-        console.error('Chyba při zpracování:', error);
-        alert('Nastala chyba při zpracování obrázku. Zkuste to prosím znovu.');
-        setIsProcessing(false);
-        setProgress(0);
-      }
-    },
-    [params]
-  );
 
   const handleImageUpload = useCallback(
     (file: File, imageUrl: string) => {
@@ -279,9 +197,7 @@ function App() {
         processed: img.hasChanges ? img.processed : null,
       }));
 
-      const processPromise = processingMode === 'ai'
-        ? processImageWithAI(processedUrl, processedFile, undefined, instructions)
-        : processImageBasic(processedUrl);
+      const processPromise = processImageWithAI(processedUrl, processedFile, undefined, instructions);
 
       setTimeout(() => {
         urlsToRevoke.forEach(({ original, processed }) => {
@@ -306,33 +222,31 @@ function App() {
         processed: img.hasChanges ? img.processed : null,
       }));
 
-      if (processingMode === 'ai') {
-        const processPromise = processImageWithAI(
-          mainImage.processed,
-          mainImage.file,
-          additionalFiles,
-          instructions
-        );
+      const processPromise = processImageWithAI(
+        mainImage.processed,
+        mainImage.file,
+        additionalFiles,
+        instructions
+      );
 
-        setTimeout(() => {
-          urlsToRevoke.forEach(({ original, processed }) => {
-            try {
-              URL.revokeObjectURL(original);
-              if (processed) URL.revokeObjectURL(processed);
-            } catch (e) {
-              console.warn('Failed to revoke URL:', e);
-            }
-          });
-        }, 1000);
-
-        processPromise.catch((error) => {
-          console.error('Processing failed:', error);
+      setTimeout(() => {
+        urlsToRevoke.forEach(({ original, processed }) => {
+          try {
+            URL.revokeObjectURL(original);
+            if (processed) URL.revokeObjectURL(processed);
+          } catch (e) {
+            console.warn('Failed to revoke URL:', e);
+          }
         });
-      }
+      }, 1000);
+
+      processPromise.catch((error) => {
+        console.error('Processing failed:', error);
+      });
     }
 
     setProcessedImages([]);
-  }, [uploadMode, processedImages, processingMode, processImageWithAI, processImageBasic, instructions]);
+  }, [uploadMode, processedImages, processImageWithAI, instructions]);
 
   const handleCancelPreview = useCallback(() => {
     processedImages.forEach(img => {
@@ -394,19 +308,13 @@ function App() {
 
   const handleGenerate = useCallback(() => {
     if (uploadMode === 'single' && currentImage) {
-      if (processingMode === 'ai') {
-        processImageWithAI(currentImage.url, currentImage.file, undefined, instructions);
-      } else {
-        processImageBasic(currentImage.url);
-      }
+      processImageWithAI(currentImage.url, currentImage.file, undefined, instructions);
     } else if (uploadMode === 'multi' && currentImages.files.length > 0) {
       const [mainFile, ...additionalFiles] = currentImages.files;
       const [mainUrl] = currentImages.urls;
-      if (processingMode === 'ai') {
-        processImageWithAI(mainUrl, mainFile, additionalFiles, instructions);
-      }
+      processImageWithAI(mainUrl, mainFile, additionalFiles, instructions);
     }
-  }, [uploadMode, currentImage, currentImages, processingMode, processImageWithAI, processImageBasic, instructions]);
+  }, [uploadMode, currentImage, currentImages, processImageWithAI, instructions]);
 
   const handleExport = useCallback(
     (format: 'obj' | 'stl' | 'ply' | 'fbx') => {
@@ -526,145 +434,107 @@ function App() {
                 <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-lg shadow-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-800">
+                <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
                   Nahrát obrázek
                 </h2>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setProcessingMode('ai');
-                      setShowPreview(false);
-                      setProcessedImages([]);
-                    }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      processingMode === 'ai'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                    }`}
-                    disabled={isProcessing}
-                  >
-                    <Sparkles className="w-4 h-4 inline mr-1" />
-                    AI Mode
-                  </button>
-                  <button
-                    onClick={() => {
-                      setProcessingMode('basic');
-                      setShowPreview(false);
-                      setProcessedImages([]);
-                    }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      processingMode === 'basic'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                    }`}
-                    disabled={isProcessing}
-                  >
-                    Basic Mode
-                  </button>
-                </div>
               </div>
 
-              {processingMode === 'ai' && (
-                <div className="mb-4 flex gap-2">
-                  <button
-                    onClick={() => {
-                      setUploadMode('single');
-                      setShowPreview(false);
-                      setProcessedImages([]);
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      uploadMode === 'single'
-                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                    disabled={isProcessing}
-                  >
-                    Jeden obrázek
-                  </button>
-                  <button
-                    onClick={() => {
-                      setUploadMode('multi');
-                      setShowPreview(false);
-                      setProcessedImages([]);
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      uploadMode === 'multi'
-                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                    disabled={isProcessing}
-                  >
-                    <Images className="w-4 h-4 inline mr-1" />
-                    Více úhlů
-                  </button>
-                </div>
-              )}
+              <div className="mb-4 flex gap-2">
+                <button
+                  onClick={() => {
+                    setUploadMode('single');
+                    setShowPreview(false);
+                    setProcessedImages([]);
+                  }}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    uploadMode === 'single'
+                      ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  disabled={isProcessing}
+                >
+                  Jeden obrázek
+                </button>
+                <button
+                  onClick={() => {
+                    setUploadMode('multi');
+                    setShowPreview(false);
+                    setProcessedImages([]);
+                  }}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    uploadMode === 'multi'
+                      ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  disabled={isProcessing}
+                >
+                  <Images className="w-4 h-4 inline mr-1" />
+                  Více úhlů
+                </button>
+              </div>
 
-              {processingMode === 'ai' && uploadMode === 'multi' ? (
+              {uploadMode === 'multi' ? (
                 <MultiImageUpload onImagesUpload={handleMultiImageUpload} disabled={isProcessing} />
               ) : (
                 <ImageUpload onImageUpload={handleImageUpload} disabled={isProcessing} />
               )}
 
-              {processingMode === 'ai' && (
-                <>
-                  <div className="mt-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Kvalita modelu
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        onClick={() => setQualityPreset('fast')}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          qualityPreset === 'fast'
-                            ? 'bg-green-600 text-white shadow-md'
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                        disabled={isProcessing}
-                      >
-                        <div className="font-semibold">Rychlý</div>
-                        <div className="text-xs opacity-80">~30s</div>
-                      </button>
-                      <button
-                        onClick={() => setQualityPreset('quality')}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          qualityPreset === 'quality'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                        disabled={isProcessing}
-                      >
-                        <div className="font-semibold">Kvalita</div>
-                        <div className="text-xs opacity-80">~45s</div>
-                      </button>
-                      <button
-                        onClick={() => setQualityPreset('ultra')}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          qualityPreset === 'ultra'
-                            ? 'bg-purple-600 text-white shadow-md'
-                            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                        }`}
-                        disabled={isProcessing}
-                      >
-                        <div className="font-semibold">Ultra</div>
-                        <div className="text-xs opacity-80">~60s</div>
-                      </button>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      {qualityPreset === 'fast' && '⚡ Nejrychlejší generování, dobrá kvalita'}
-                      {qualityPreset === 'quality' && '🎯 Vyvážený poměr kvality a rychlosti (výchozí)'}
-                      {qualityPreset === 'ultra' && '✨ Maximální kvalita geometrie a textur'}
-                    </p>
-                  </div>
+              <div className="mt-4 bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Kvalita modelu
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setQualityPreset('fast')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      qualityPreset === 'fast'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                    disabled={isProcessing}
+                  >
+                    <div className="font-semibold">Rychlý</div>
+                    <div className="text-xs opacity-80">~30s</div>
+                  </button>
+                  <button
+                    onClick={() => setQualityPreset('quality')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      qualityPreset === 'quality'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                    disabled={isProcessing}
+                  >
+                    <div className="font-semibold">Kvalita</div>
+                    <div className="text-xs opacity-80">~45s</div>
+                  </button>
+                  <button
+                    onClick={() => setQualityPreset('ultra')}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      qualityPreset === 'ultra'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                    disabled={isProcessing}
+                  >
+                    <div className="font-semibold">Ultra</div>
+                    <div className="text-xs opacity-80">~60s</div>
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  {qualityPreset === 'fast' && '⚡ Nejrychlejší generování, dobrá kvalita'}
+                  {qualityPreset === 'quality' && '🎯 Vyvážený poměr kvality a rychlosti (výchozí)'}
+                  {qualityPreset === 'ultra' && '✨ Maximální kvalita geometrie a textur'}
+                </p>
+              </div>
 
-                  <div className="mt-4">
-                    <InstructionsChat
-                      onInstructionsChange={setInstructions}
-                      disabled={isProcessing}
-                    />
-                  </div>
-                </>
-              )}
+              <div className="mt-4">
+                <InstructionsChat
+                  onInstructionsChange={setInstructions}
+                  disabled={isProcessing}
+                />
+              </div>
 
               {((uploadMode === 'single' && currentImage) || (uploadMode === 'multi' && currentImages.files.length > 0)) && !mesh && !aiModelUrl && !showPreview && (
                 <div className="mt-4 space-y-3">
@@ -729,31 +599,24 @@ function App() {
             )}
 
             {!mesh && !aiModelUrl && !isProcessing && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6">
                 <div className="flex gap-3">
-                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <Sparkles className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-blue-900 mb-2">
-                      Jak to funguje?
+                    <h3 className="font-bold text-blue-900 mb-2 text-lg">
+                      AI-Powered 3D Reconstruction
                     </h3>
-                    <div className="text-sm text-blue-800 space-y-3">
-                      <div>
-                        <strong className="text-purple-700">AI Mode (Doporučeno):</strong>
-                        <ol className="mt-1 space-y-1 ml-4">
-                          <li>• TripoSR AI pro realistickou 3D rekonstrukci</li>
-                          <li>• Vytvoří plně objemový 3D model ze všech stran</li>
-                          <li>• Zdarma přes Hugging Face Gradio Space</li>
-                          <li>• Trvá 30-60 sekund</li>
-                        </ol>
-                      </div>
-                      <div>
-                        <strong className="text-blue-700">Basic Mode:</strong>
-                        <ol className="mt-1 space-y-1 ml-4">
-                          <li>• Rychlá depth-map konverze (5-15 sekund)</li>
-                          <li>• Běží lokálně ve vašem prohlížeči</li>
-                          <li>• Vytvoří 2.5D relief s texturami</li>
-                        </ol>
-                      </div>
+                    <div className="text-sm text-blue-800 space-y-2">
+                      <p className="font-medium">
+                        Profesionální konverze obrázků na 3D modely pomocí TripoSR AI:
+                      </p>
+                      <ul className="space-y-1 ml-4">
+                        <li>• Realistická 3D rekonstrukce s přesnou geometrií</li>
+                        <li>• Plně objemový model viditelný ze všech stran</li>
+                        <li>• Pokročilé nástroje pro editaci materiálů a meshů</li>
+                        <li>• Multi-angle support pro ještě lepší kvalitu</li>
+                        <li>• Generování trvá 30-60 sekund (zdarma)</li>
+                      </ul>
                     </div>
                   </div>
                 </div>
@@ -763,12 +626,12 @@ function App() {
 
           <div className="space-y-6">
             <ParameterControls
-              params={params}
-              onParamsChange={setParams}
+              params={{ resolution: 3, depthScale: 3.0, smoothness: 0.5 }}
+              onParamsChange={() => {}}
               onRegenerate={handleGenerate}
               onExport={handleExport}
               disabled={(!mesh && !aiModelUrl) || isProcessing}
-              showParams={processingMode === 'basic'}
+              showParams={false}
               aiModelUrl={aiModelUrl}
             />
 
