@@ -752,13 +752,13 @@ function App() {
           <div className="h-full relative bg-[#050508]">
              {/* Viewer Overlay UI */}
              <div className="absolute top-6 left-6 z-20 flex flex-col gap-4">
-                <button 
+                <button
                    onClick={() => setActiveTab('upload')}
                    className="bg-brand-panel/90 backdrop-blur border border-white/10 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-brand-panel hover:border-brand-accent transition-all flex items-center gap-2 shadow-xl"
                 >
                   ← Zpět do Studia
                 </button>
-                
+
                 {aiModelUrl && (
                     <div className="w-72 bg-brand-panel/90 backdrop-blur border border-white/10 rounded-xl p-5 shadow-2xl">
                         <div className="flex items-center gap-2 mb-3 text-brand-accent font-bold text-xs uppercase tracking-wider">
@@ -771,13 +771,27 @@ function App() {
 
              {/* 3D Canvas Container */}
              <div className="h-full w-full">
-                {aiModelUrl && useEnhancedViewer ? (
+                {aiModelUrl && aiModelUrl.trim() !== '' && useEnhancedViewer ? (
                   <EnhancedGLBViewer modelUrl={aiModelUrl} />
-                ) : aiModelUrl ? (
+                ) : aiModelUrl && aiModelUrl.trim() !== '' ? (
                   <GLBViewer modelUrl={aiModelUrl} />
                 ) : mesh ? (
                   <ThreeViewer mesh={mesh} />
-                ) : null}
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Box className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                      <p className="text-white text-lg font-semibold mb-2">Žádný model k zobrazení</p>
+                      <p className="text-gray-400 text-sm mb-6">Nejprve vygenerujte 3D model v Image 3D tabu</p>
+                      <button
+                        onClick={() => setActiveTab('upload')}
+                        className="px-6 py-3 bg-brand-accent hover:bg-brand-accent/80 text-white rounded-lg font-semibold transition-all"
+                      >
+                        ← Zpět do Studia
+                      </button>
+                    </div>
+                  </div>
+                )}
              </div>
           </div>
         )}

@@ -136,9 +136,19 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     gridRef.current = gridHelper;
 
     const loader = new GLTFLoader();
+
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.error('Model loading timeout');
+        setError('Model loading timed out. Please try generating the model again.');
+        setIsLoading(false);
+      }
+    }, 30000);
+
     loader.load(
       modelUrl,
       (gltf) => {
+        clearTimeout(loadingTimeout);
         const model = gltf.scene;
         modelRef.current = model;
 
@@ -168,8 +178,9 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
         console.log(`Loading: ${(progress.loaded / progress.total) * 100}%`);
       },
       (error) => {
+        clearTimeout(loadingTimeout);
         console.error('Error loading GLB:', error);
-        setError('Failed to load 3D model');
+        setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
         setIsLoading(false);
       }
     );
@@ -392,9 +403,19 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-75 z-10">
-          <div className="text-center text-red-400">
-            <p>{error}</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90 z-10">
+          <div className="text-center max-w-md p-8 bg-slate-800 rounded-lg shadow-xl">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl">⚠️</span>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Chyba při načítání modelu</h3>
+            <p className="text-red-400 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
+            >
+              Obnovit stránku
+            </button>
           </div>
         </div>
       )}
