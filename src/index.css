@@ -1,3 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-dark text-brand-light font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-spartan font-bold;
+  }
+}
+
+/* Custom Scrollbar pro moderní vzhled */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0C10; 
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0F172A; 
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF003C; 
+}
