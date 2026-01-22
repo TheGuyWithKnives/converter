@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Image as ImageIcon, FileWarning } from 'lucide-react';
+import { Upload, Image as ImageIcon } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageUpload: (file: File, imageUrl: string) => void;
@@ -38,7 +38,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUpload, disabled }) =>
     >
       <input {...getInputProps()} />
       
-      {/* Dekorativní prvky */}
+      {/* Dekorativní gradient na pozadí */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark/80 pointer-events-none" />
       
       <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
@@ -54,13 +54,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUpload, disabled }) =>
           {isDragActive ? 'Pusťte soubor zde' : 'Nahrát obrázek'}
         </h3>
         
-        <p className="text-sm text-brand-muted max-w-xs">
+        <p className="text-sm text-brand-muted max-w-xs font-sans">
           Drag & drop nebo klikněte pro výběr
           <span className="block text-xs opacity-60 mt-1 font-mono">PNG, JPG, WEBP (Max 20MB)</span>
         </p>
       </div>
 
-      {/* Rohové akcenty */}
+      {/* Rohové akcenty pro Tech-Look */}
       <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-brand-accent/30 rounded-tl-lg group-hover:border-brand-accent transition-colors" />
       <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-brand-accent/30 rounded-br-lg group-hover:border-brand-accent transition-colors" />
     </div>
