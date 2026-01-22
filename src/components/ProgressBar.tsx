@@ -1,49 +1,57 @@
-import { Loader2, X } from 'lucide-react';
+import React from 'react';
+import { X, Loader2 } from 'lucide-react';
 
 interface ProgressBarProps {
   progress: number;
-  message?: string;
+  message: string;
   onCancel?: () => void;
   cancellable?: boolean;
 }
 
-export default function ProgressBar({ progress, message, onCancel, cancellable = true }: ProgressBarProps) {
+const ProgressBar: React.FC<ProgressBarProps> = ({ 
+  progress, 
+  message, 
+  onCancel, 
+  cancellable = false 
+}) => {
+  // Převod 0-1 na 0-100
+  const percentage = Math.min(100, Math.max(0, Math.round(progress * 100)));
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full mx-4">
-        <div className="flex items-center justify-center mb-4">
-          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-brand-accent animate-spin" />
+            <span className="text-brand-light font-bold font-spartan tracking-wide">
+              ZPRACOVÁVÁM...
+            </span>
         </div>
-
-        <h3 className="text-lg font-semibold text-slate-800 text-center mb-2">
-          Zpracování...
-        </h3>
-
-        {message && (
-          <p className="text-sm text-slate-600 text-center mb-4">{message}</p>
-        )}
-
-        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-          <div
-            className="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-300 ease-out"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </div>
-
-        <p className="text-center text-sm text-slate-500 mt-3">
-          {Math.round(progress * 100)}%
-        </p>
-
-        {cancellable && onCancel && (
-          <button
-            onClick={onCancel}
-            className="mt-4 w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <X className="w-4 h-4" />
-            Zrušit
-          </button>
-        )}
+        <span className="text-brand-accent font-mono font-bold">{percentage}%</span>
       </div>
+
+      {/* Track */}
+      <div className="w-full h-2 bg-brand-dark rounded-full overflow-hidden mb-4 border border-brand-light/5">
+        {/* Fill */}
+        <div 
+          className="h-full bg-gradient-to-r from-brand-accent to-red-600 transition-all duration-300 shadow-[0_0_10px_rgba(255,0,60,0.5)]"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+
+      <p className="text-center text-xs text-brand-muted uppercase tracking-wider mb-4">
+        {message}
+      </p>
+
+      {cancellable && onCancel && (
+        <button
+          onClick={onCancel}
+          className="w-full py-2 border border-brand-light/10 rounded-lg text-brand-muted text-xs hover:text-brand-light hover:border-brand-light/30 transition-colors flex items-center justify-center gap-2"
+        >
+          <X className="w-3 h-3" /> Zrušit proces
+        </button>
+      )}
     </div>
   );
-}
+};
+
+export default ProgressBar;
