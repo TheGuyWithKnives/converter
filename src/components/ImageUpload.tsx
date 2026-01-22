@@ -1,154 +1,70 @@
-import { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import React, { useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, Image as ImageIcon, FileWarning } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageUpload: (file: File, imageUrl: string) => void;
   disabled?: boolean;
 }
 
-export default function ImageUpload({ onImageUpload, disabled }: ImageUploadProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const validateFile = (file: File): string | null => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      return 'Pouze JPG, PNG a WEBP formáty jsou podporovány';
+const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUpload, disabled }) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      const imageUrl = URL.createObjectURL(file);
+      onImageUpload(file, imageUrl);
     }
+  }, [onImageUpload]);
 
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return 'Soubor je příliš velký. Maximální velikost je 10MB';
-    }
-
-    return null;
-  };
-
-  const handleFile = useCallback(
-    (file: File) => {
-      const validationError = validateFile(file);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      setError(null);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setPreview(imageUrl);
-        onImageUpload(file, imageUrl);
-      };
-      reader.readAsDataURL(file);
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
     },
-    [onImageUpload]
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-
-      if (disabled) return;
-
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        handleFile(file);
-      }
-    },
-    [disabled, handleFile]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        handleFile(file);
-      }
-    },
-    [handleFile]
-  );
-
-  const clearPreview = useCallback(() => {
-    setPreview(null);
-    setError(null);
-  }, []);
+    maxFiles: 1,
+    disabled
+  });
 
   return (
-    <div className="w-full">
-      {!preview ? (
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`
-            relative border-2 border-dashed rounded-lg p-12 text-center transition-all
-            ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-white'}
-            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-blue-400'}
-          `}
-        >
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={handleFileInput}
-            disabled={disabled}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-          />
-
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-              <Upload className="w-8 h-8 text-blue-600" />
-            </div>
-
-            <div>
-              <p className="text-lg font-semibold text-slate-700 mb-1">
-                Přetáhněte obrázek sem
-              </p>
-              <p className="text-sm text-slate-500">
-                nebo klikněte pro výběr souboru
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <ImageIcon className="w-4 h-4" />
-              <span>JPG, PNG, WEBP • Max 10MB</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="relative rounded-lg overflow-hidden bg-slate-100">
-          <img
-            src={preview}
-            alt="Náhled"
-            className="w-full h-auto max-h-96 object-contain"
-          />
-
-          {!disabled && (
-            <button
-              onClick={clearPreview}
-              className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <div
+      {...getRootProps()}
+      className={`relative w-full h-64 border-2 border-dashed rounded-xl transition-all duration-300 ease-out cursor-pointer overflow-hidden group
+        ${isDragActive 
+          ? 'border-brand-accent bg-brand-accent/10 shadow-[0_0_30px_rgba(255,0,60,0.2)]' 
+          : 'border-brand-light/10 bg-brand-dark/50 hover:border-brand-accent/50 hover:bg-brand-panel'
+        }
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+      `}
+    >
+      <input {...getInputProps()} />
+      
+      {/* Dekorativní prvky */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark/80 pointer-events-none" />
+      
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
+        <div className={`p-4 rounded-full mb-4 transition-transform duration-300 ${isDragActive ? 'scale-110 bg-brand-accent text-brand-light' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:text-brand-light group-hover:border-brand-accent'}`}>
+          {isDragActive ? (
+            <Upload className="w-8 h-8 animate-bounce" />
+          ) : (
+            <ImageIcon className="w-8 h-8" />
           )}
         </div>
-      )}
+        
+        <h3 className="text-lg font-spartan font-bold text-brand-light mb-2">
+          {isDragActive ? 'Pusťte soubor zde' : 'Nahrát obrázek'}
+        </h3>
+        
+        <p className="text-sm text-brand-muted max-w-xs">
+          Drag & drop nebo klikněte pro výběr
+          <span className="block text-xs opacity-60 mt-1 font-mono">PNG, JPG, WEBP (Max 20MB)</span>
+        </p>
+      </div>
 
-      {error && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
-      )}
+      {/* Rohové akcenty */}
+      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-brand-accent/30 rounded-tl-lg group-hover:border-brand-accent transition-colors" />
+      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-brand-accent/30 rounded-br-lg group-hover:border-brand-accent transition-colors" />
     </div>
   );
-}
+};
+
+export default ImageUpload;
