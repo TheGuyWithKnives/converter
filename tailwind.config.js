@@ -7,19 +7,21 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Barvy dle GENZEO manuálu
         brand: {
-          dark: '#0B0C10',    // Hlavní pozadí
-          panel: '#0F172A',   // Panely a karty
-          accent: '#FF003C',  // Hlavní akční barva (Červená)
-          light: '#F4F4F4',   // Text a světlé prvky
+          dark: '#0B0C10',    // Hlavní pozadí (Deep Black)
+          panel: '#0F172A',   // Panely (Dark Blue-Grey)
+          accent: '#FF003C',  // Akční barva (Neon Red)
+          light: '#F4F4F4',   // Text (Off-White)
+          muted: '#94A3B8',   // Tlumený text (pro popisky)
         }
       },
       fontFamily: {
-        // Primární font pro nadpisy
         spartan: ['"League Spartan"', 'sans-serif'],
-        // Sekundární font pro text (fallback na Arial/Sans)
         sans: ['"Arial Nova"', 'Arial', 'sans-serif'],
+      },
+      boxShadow: {
+        'glow': '0 0 20px rgba(255, 0, 60, 0.3)', // Červená záře
+        'glow-strong': '0 0 30px rgba(255, 0, 60, 0.5)',
       }
     },
   },
