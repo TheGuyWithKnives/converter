@@ -6,17 +6,18 @@
 
 @layer base {
   body {
-    @apply bg-brand-dark text-brand-light font-sans;
+    @apply bg-brand-dark text-brand-light font-sans antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-spartan font-bold;
+    @apply font-spartan font-bold tracking-wide;
   }
 }
 
-/* Custom Scrollbar pro moderní vzhled */
+/* Scrollbar v Genzeo barvách */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -26,6 +27,7 @@
 ::-webkit-scrollbar-thumb {
   background: #0F172A; 
   border-radius: 4px;
+  border: 1px solid #1E293B;
 }
 
 ::-webkit-scrollbar-thumb:hover {
