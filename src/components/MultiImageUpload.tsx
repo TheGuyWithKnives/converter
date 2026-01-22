@@ -1,217 +1,107 @@
-import { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Plus } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, Image as ImageIcon, X, Layers, Plus } from 'lucide-react';
 
 interface MultiImageUploadProps {
   onImagesUpload: (files: File[], imageUrls: string[]) => void;
   disabled?: boolean;
 }
 
-export default function MultiImageUpload({ onImagesUpload, disabled }: MultiImageUploadProps) {
-  const [isDragging, setIsDragging] = useState(false);
+const MultiImageUpload: React.FC<MultiImageUploadProps> = ({ onImagesUpload, disabled }) => {
   const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
-  const validateFile = (file: File): string | null => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      return 'Pouze JPG, PNG a WEBP formáty jsou podporovány';
-    }
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    const newPreviews = acceptedFiles.map(file => ({
+      file,
+      url: URL.createObjectURL(file)
+    }));
 
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return 'Soubor je příliš velký. Maximální velikost je 10MB';
-    }
-
-    return null;
-  };
-
-  const handleFiles = useCallback(
-    (files: FileList) => {
-      const newPreviews: { file: File; url: string }[] = [];
-      const errors: string[] = [];
-
-      Array.from(files).forEach((file) => {
-        const validationError = validateFile(file);
-        if (validationError) {
-          errors.push(`${file.name}: ${validationError}`);
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target?.result as string;
-          newPreviews.push({ file, url: imageUrl });
-
-          if (newPreviews.length === files.length - errors.length) {
-            setPreviews((prev) => {
-              const updated = [...prev, ...newPreviews];
-              onImagesUpload(
-                updated.map((p) => p.file),
-                updated.map((p) => p.url)
-              );
-              return updated;
-            });
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-
-      if (errors.length > 0) {
-        setError(errors.join('\n'));
-      } else {
-        setError(null);
-      }
-    },
-    [onImagesUpload]
-  );
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-
-      if (disabled) return;
-
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleFiles(files);
-      }
-    },
-    [disabled, handleFiles]
-  );
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleFileInput = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = e.target.files;
-      if (files && files.length > 0) {
-        handleFiles(files);
-      }
-    },
-    [handleFiles]
-  );
-
-  const removePreview = useCallback(
-    (index: number) => {
-      setPreviews((prev) => {
-        const updated = prev.filter((_, i) => i !== index);
-        onImagesUpload(
-          updated.map((p) => p.file),
-          updated.map((p) => p.url)
-        );
-        return updated;
-      });
-    },
-    [onImagesUpload]
-  );
-
-  const clearAll = useCallback(() => {
-    setPreviews([]);
-    setError(null);
-    onImagesUpload([], []);
+    setPreviews(prev => {
+      const updated = [...prev, ...newPreviews];
+      // Předáme rodiči aktualizovaný seznam
+      onImagesUpload(updated.map(p => p.file), updated.map(p => p.url));
+      return updated;
+    });
   }, [onImagesUpload]);
 
+  const removeImage = (index: number) => {
+    setPreviews(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      // Uvolníme paměť URL
+      URL.revokeObjectURL(prev[index].url);
+      onImagesUpload(updated.map(p => p.file), updated.map(p => p.url));
+      return updated;
+    });
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.png', '.jpg', '.jpeg', '.webp'] },
+    disabled
+  });
+
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
+      {/* Dropzone Area */}
       <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center transition-all
-          ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-white'}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-blue-400'}
+        {...getRootProps()}
+        className={`relative w-full h-40 border-2 border-dashed rounded-xl transition-all duration-300 ease-out cursor-pointer overflow-hidden group flex flex-col items-center justify-center
+          ${isDragActive 
+            ? 'border-brand-accent bg-brand-accent/10 shadow-[0_0_30px_rgba(255,0,60,0.2)]' 
+            : 'border-brand-light/10 bg-brand-dark/50 hover:border-brand-accent/50 hover:bg-brand-panel'
+          }
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleFileInput}
-          disabled={disabled}
-          multiple
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-        />
-
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-            {previews.length === 0 ? (
-              <Upload className="w-6 h-6 text-blue-600" />
-            ) : (
-              <Plus className="w-6 h-6 text-blue-600" />
-            )}
-          </div>
-
-          <div>
-            <p className="text-base font-semibold text-slate-700 mb-1">
-              {previews.length === 0
-                ? 'Přetáhněte obrázky sem nebo klikněte'
-                : 'Přidat další obrázky'}
-            </p>
-            <p className="text-sm text-slate-500">
-              Můžete nahrát více fotek z různých úhlů
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            <ImageIcon className="w-4 h-4" />
-            <span>JPG, PNG, WEBP • Max 10MB každý</span>
-          </div>
+        <input {...getInputProps()} />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark/80 pointer-events-none" />
+        
+        <div className="z-10 text-center p-4">
+           <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-3 transition-colors ${isDragActive ? 'bg-brand-accent text-white' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:border-brand-accent group-hover:text-brand-light'}`}>
+              <Layers className="w-6 h-6" />
+           </div>
+           <h3 className="text-sm font-spartan font-bold text-brand-light">
+             {isDragActive ? 'Pusťte soubory zde' : 'Nahrát sérii fotek'}
+           </h3>
+           <p className="text-xs text-brand-muted mt-1 font-sans">
+             Nahrajte více úhlů najednou
+           </p>
         </div>
       </div>
 
+      {/* Grid náhledů */}
       {previews.length > 0 && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm text-slate-600 font-medium">
-              Nahráno {previews.length} {previews.length === 1 ? 'obrázek' : 'obrázků'}
-            </p>
-            {!disabled && (
-              <button
-                onClick={clearAll}
-                className="text-xs text-red-600 hover:text-red-700 font-medium"
-              >
-                Odstranit vše
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {previews.map((preview, index) => (
-              <div key={index} className="relative group rounded-lg overflow-hidden bg-slate-100">
-                <img
-                  src={preview.url}
-                  alt={`Náhled ${index + 1}`}
-                  className="w-full h-32 object-cover"
-                />
-                {!disabled && (
-                  <button
-                    onClick={() => removePreview(index)}
-                    className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white p-1 rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
-                  {index + 1}
-                </div>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 animate-in fade-in slide-in-from-bottom-4">
+          {previews.map((preview, index) => (
+            <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-brand-light/10 group">
+              <img 
+                src={preview.url} 
+                alt={`Preview ${index}`} 
+                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+              />
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button
+                  onClick={() => removeImage(index)}
+                  className="p-1.5 bg-red-600 text-white rounded-full hover:bg-red-700 shadow-lg transform hover:scale-110 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            ))}
+              <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-brand-dark/80 rounded text-[10px] font-mono text-brand-accent border border-brand-accent/20">
+                #{index + 1}
+              </div>
+            </div>
+          ))}
+          
+          {/* Tlačítko "Přidat další" v gridu */}
+          <div {...getRootProps()} className="aspect-square rounded-lg border border-dashed border-brand-light/10 flex flex-col items-center justify-center cursor-pointer hover:border-brand-accent hover:bg-brand-accent/5 transition-all text-brand-muted hover:text-brand-accent">
+             <Plus className="w-6 h-6 mb-1" />
+             <span className="text-[10px] uppercase font-bold">Add</span>
           </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600 whitespace-pre-line">{error}</p>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default MultiImageUpload;
