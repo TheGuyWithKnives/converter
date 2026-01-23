@@ -16,6 +16,7 @@ import ProgressBar from './components/ProgressBar';
 import ImageEditor from './components/ImageEditor';
 import { TextTo3DGenerator } from './components/TextTo3DGenerator';
 import { RiggingControl } from './components/RiggingControl';
+import { Shape3DLogo } from './components/Shape3DLogo'; // ZMĚNA: Import nového loga
 
 // Služby
 import { generateMeshFromDepth } from './services/meshGenerator';
@@ -304,17 +305,8 @@ function App() {
       <header className="bg-brand-panel border-b border-brand-light/5 flex-shrink-0 z-10 relative">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center shadow-glow transition-transform hover:scale-105">
-              <Box className="w-6 h-6 text-brand-light" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-spartan font-bold text-brand-light tracking-wide">
-                GENZEO<span className="text-brand-accent">.</span> platform
-              </h1>
-              <p className="text-xs text-brand-muted tracking-[0.2em] uppercase font-bold">
-                Professional 2D → 3D Suite
-              </p>
-            </div>
+            {/* ZMĚNA: Nová komponenta Shape3DLogo nahrazuje původní text */}
+            <Shape3DLogo className="w-12 h-12 text-brand-light" />
           </div>
 
           <div className="flex items-center gap-6">
