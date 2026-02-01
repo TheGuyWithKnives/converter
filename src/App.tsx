@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap, AlertCircle, CheckCircle } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -16,7 +17,7 @@ import ProgressBar from './components/ProgressBar';
 import ImageEditor from './components/ImageEditor';
 import { TextTo3DGenerator } from './components/TextTo3DGenerator';
 import { RiggingControl } from './components/RiggingControl';
-import { Shape3DLogo } from './components/Shape3DLogo'; // ZMĚNA: Import nového loga
+import { HelmetTools } from './components/HelmetTools'; // [NOVÉ] Import nástrojů pro helmy
 
 // Služby
 import { generateMeshFromDepth } from './services/meshGenerator';
@@ -168,7 +169,42 @@ function App() {
     });
   }, []);
 
+  // [UPRAVENO] Logika pro nahrání obrázku NEBO STL souboru
   const handleImageUpload = useCallback((file: File, imageUrl: string) => {
+    // A. Detekce STL souboru
+    if (file.name.toLowerCase().endsWith('.stl')) {
+      const loader = new STLLoader();
+      loader.load(imageUrl, (geometry) => {
+          // Vytvoření materiálu pro STL
+          const material = new THREE.MeshStandardMaterial({ 
+              color: 0x60a5fa, // Modrá
+              roughness: 0.5,
+              metalness: 0.1
+          });
+          
+          // Vycentrování geometrie
+          geometry.computeBoundingBox();
+          geometry.center();
+          
+          const newMesh = new THREE.Mesh(geometry, material);
+          
+          // Nastavení stavu
+          setMesh(newMesh);
+          setAiModelUrl(null); // Vymažeme AI URL, protože máme mesh
+          setActiveTab('viewer'); // Přepneme rovnou na viewer
+          
+          toast.success('STL model načten', {
+              style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #3B82F6' },
+              icon: '🧊'
+          });
+      }, undefined, (err) => {
+          console.error(err);
+          toast.error('Chyba při načítání STL souboru');
+      });
+      return; // Ukončíme funkci, aby se nenastavil jako obrázek pro AI
+    }
+
+    // B. Standardní obrázek (pokračuje původní logika)
     setCurrentImage({ file, url: imageUrl });
   }, []);
 
@@ -305,8 +341,17 @@ function App() {
       <header className="bg-brand-panel border-b border-brand-light/5 flex-shrink-0 z-10 relative">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* ZMĚNA: Nová komponenta Shape3DLogo nahrazuje původní text */}
-            <Shape3DLogo className="w-12 h-12 text-brand-light" />
+            <div className="w-10 h-10 bg-brand-accent rounded-lg flex items-center justify-center shadow-glow transition-transform hover:scale-105">
+              <Box className="w-6 h-6 text-brand-light" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-spartan font-bold text-brand-light tracking-wide">
+                GENZEO<span className="text-brand-accent">.</span> platform
+              </h1>
+              <p className="text-xs text-brand-muted tracking-[0.2em] uppercase font-bold">
+                Professional 2D → 3D Suite
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-6">
@@ -368,7 +413,7 @@ function App() {
 
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 overflow-hidden relative">
-        {/* Dekorativní pozadí (červená záře místo modré) */}
+        {/* Dekorativní pozadí */}
         <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-brand-accent/5 blur-[150px] rounded-full pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-brand-accent/5 blur-[120px] rounded-full pointer-events-none" />
 
@@ -409,7 +454,7 @@ function App() {
                           </div>
                         </div>
 
-                        {/* Upload Zone - passing brand colors if component supports it, otherwise controlled by CSS */}
+                        {/* Upload Zone */}
                         <div className="mb-8 group">
                           {uploadMode === 'multi' ? (
                             <MultiImageUpload onImagesUpload={handleMultiImageUpload} disabled={isProcessing} />
@@ -464,7 +509,7 @@ function App() {
                             )}
                         </div>
 
-                        {/* Instructions - předáváme classes pro barvu */}
+                        {/* Instructions */}
                         <div className="mt-8">
                             <InstructionsChat onInstructionsChange={setInstructions} disabled={isProcessing} />
                         </div>
@@ -590,6 +635,7 @@ function App() {
                   ← Zpět do Studia
                 </button>
                 
+                {/* AI Rigging Controls (jen pro GLB/AI) */}
                 {aiModelUrl && (
                     <div className="w-72 bg-brand-panel/90 backdrop-blur-md border border-brand-light/10 rounded-xl p-5 shadow-2xl">
                         <div className="flex items-center gap-2 mb-3 text-brand-accent font-bold text-xs uppercase tracking-wider">
@@ -597,6 +643,23 @@ function App() {
                         </div>
                         <RiggingControl modelUrl={aiModelUrl} onRigged={handleRiggingComplete} />
                     </div>
+                )}
+
+                {/* [NOVÉ] HELMET & PRINT TOOLS (Jen pro Mesh/STL) */}
+                {mesh && !aiModelUrl && (
+                  <div className="w-80 animate-in fade-in slide-in-from-left-4 duration-500">
+                     <HelmetTools 
+                        mesh={mesh}
+                        onScaleChange={(newScale) => {
+                           if (mesh) {
+                              mesh.scale.set(...newScale);
+                              // React Three Fiber by to měl překreslit automaticky, 
+                              // ale pro jistotu můžeme vynutit update přes state, pokud by to zlobilo.
+                              // Zde spoléháme na mutaci three.js objektu.
+                           }
+                        }}
+                     />
+                  </div>
                 )}
              </div>
 
