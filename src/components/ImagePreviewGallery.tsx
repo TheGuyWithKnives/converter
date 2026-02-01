@@ -1,90 +1,89 @@
-import React from 'react';
-import { X, Check, Edit3, Image as ImageIcon } from 'lucide-react';
-
-interface ProcessedImage {
-  original: string;
-  processed: string;
-  file: File;
-  hasChanges: boolean;
-}
+import React, { useState } from 'react';
+import { X, ZoomIn } from 'lucide-react';
 
 interface ImagePreviewGalleryProps {
-  images: ProcessedImage[];
-  onConfirm: () => void;
-  onCancel: () => void;
-  onEdit: () => void;
-  isGenerating: boolean;
+  images: string[];
+  onRemove?: (index: number) => void;
+  selectedIndex?: number;
+  onSelect?: (index: number) => void;
 }
 
-const ImagePreviewGallery: React.FC<ImagePreviewGalleryProps> = ({
-  images,
-  onConfirm,
-  onCancel,
-  onEdit,
-  isGenerating
-}) => {
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-spartan font-bold text-brand-light flex items-center gap-2">
-          <ImageIcon className="w-5 h-5 text-brand-accent" />
-          Náhled ke zpracování
-        </h3>
-        <span className="text-xs bg-brand-panel px-2 py-1 rounded border border-brand-light/10 text-brand-muted">
-          {images.length} snímků
-        </span>
-      </div>
+export function ImagePreviewGallery({ 
+  images, 
+  onRemove, 
+  selectedIndex = 0, 
+  onSelect 
+}: ImagePreviewGalleryProps) {
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {images.map((img, idx) => (
-          <div key={idx} className="group relative aspect-square bg-brand-dark rounded-xl overflow-hidden border border-brand-light/10 hover:border-brand-accent/50 transition-all shadow-lg">
-            {/* Split view: Original vs Processed if changes exists */}
-            {img.hasChanges ? (
-               <div className="relative w-full h-full">
-                  <img src={img.processed} className="w-full h-full object-cover" alt="Processed" />
-                  <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-brand-accent text-white text-[10px] font-bold uppercase rounded shadow-lg">
-                     Edited
-                  </div>
-               </div>
-            ) : (
-               <img src={img.original} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="Original" />
-            )}
+  if (images.length === 0) return null;
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-2 mt-4 sm:grid-cols-4 md:grid-cols-5">
+        {images.map((img, index) => (
+          <div 
+            key={index} 
+            className={`
+              relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer group
+              ${selectedIndex === index ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-700 hover:border-gray-500'}
+            `}
+            onClick={() => onSelect && onSelect(index)}
+          >
+            <img 
+              src={img} 
+              alt={`Preview ${index + 1}`} 
+              className="w-full h-full object-cover"
+            />
             
-            <div className="absolute top-2 left-2 w-6 h-6 bg-brand-dark/80 rounded-full flex items-center justify-center text-xs font-mono text-brand-light border border-brand-light/10">
-              {idx + 1}
+            {/* Overlay pro mobil i desktop */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+               <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFullscreenImage(img);
+                }}
+                className="p-1.5 bg-black/60 rounded-full text-white hover:bg-blue-600 mr-2"
+                title="Zvětšit"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              
+              {onRemove && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove(index);
+                  }}
+                  className="p-1.5 bg-red-500/80 rounded-full text-white hover:bg-red-600"
+                  title="Odstranit"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex gap-3 pt-2">
-        <button
-          onClick={onCancel}
-          disabled={isGenerating}
-          className="flex-1 py-3 bg-brand-dark border border-brand-light/10 rounded-xl text-brand-muted font-bold hover:text-brand-light hover:bg-brand-panel transition-all flex items-center justify-center gap-2"
-        >
-          <X className="w-4 h-4" /> Zrušit
-        </button>
-        
-        <button
-          onClick={onEdit}
-          disabled={isGenerating}
-          className="flex-1 py-3 bg-brand-dark border border-brand-light/10 rounded-xl text-brand-muted font-bold hover:text-brand-accent hover:border-brand-accent/30 transition-all flex items-center justify-center gap-2"
-        >
-          <Edit3 className="w-4 h-4" /> Upravit
-        </button>
-
-        <button
-          onClick={onConfirm}
-          disabled={isGenerating}
-          className="flex-[2] py-3 bg-gradient-to-r from-brand-accent to-red-600 text-white rounded-xl font-bold shadow-glow hover:opacity-90 transition-all flex items-center justify-center gap-2"
-        >
-          <Check className="w-4 h-4" /> 
-          {isGenerating ? 'Zpracovávám...' : 'Potvrdit a Generovat'}
-        </button>
-      </div>
-    </div>
+      {/* Fullscreen Modal (Lightbox) */}
+      {fullscreenImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4 backdrop-blur-sm"
+             onClick={() => setFullscreenImage(null)}>
+          <button 
+            className="absolute top-4 right-4 p-2 text-white hover:text-gray-300"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img 
+            src={fullscreenImage} 
+            alt="Fullscreen preview" 
+            className="max-w-full max-h-[90vh] object-contain rounded shadow-2xl"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>
+      )}
+    </>
   );
-};
-
-export default ImagePreviewGallery;
+}
