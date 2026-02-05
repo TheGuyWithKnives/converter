@@ -34,7 +34,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   };
 }
 
-const MESHY_API_KEY = Deno.env.get('MESHY_API_KEY') || 'msy_DmPgszUdPl98438eI5SEb3Fe7msY2W3H25nv';
+const MESHY_API_KEY = Deno.env.get('MESHY_API_KEY');
 
 if (!MESHY_API_KEY) {
   console.error('CRITICAL: MESHY_API_KEY environment variable is not set!');
