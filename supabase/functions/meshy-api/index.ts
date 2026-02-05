@@ -70,6 +70,34 @@ Deno.serve(async (req: Request) => {
         body = undefined;
         break;
       }
+      case 'proxy-model': {
+        if (!payload.url || typeof payload.url !== 'string') {
+          throw new Error('Missing url for proxy-model');
+        }
+        const modelUrl = payload.url;
+        const allowedHosts = ['assets.meshy.ai', 'cdn.meshy.ai'];
+        const parsedUrl = new URL(modelUrl);
+        if (!allowedHosts.some(h => parsedUrl.hostname.endsWith(h))) {
+          throw new Error('URL not allowed for proxying');
+        }
+        const modelResponse = await fetch(modelUrl);
+        if (!modelResponse.ok) {
+          throw new Error(`Failed to fetch model: ${modelResponse.status}`);
+        }
+        const arrayBuffer = await modelResponse.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        const chunkSize = 8192;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+          binary += String.fromCharCode(...chunk);
+        }
+        const base64 = btoa(binary);
+        const contentType = modelResponse.headers.get('content-type') || 'model/gltf-binary';
+        return new Response(JSON.stringify({ data: base64, contentType }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
       default:
         throw new Error(`Unknown action: ${action}`);
     }

@@ -6,6 +6,7 @@ import MaterialEditor, { MaterialSettings } from './MaterialEditor';
 import MeshStatistics from './MeshStatistics';
 import CameraPresets, { CameraPreset } from './CameraPresets';
 import ViewportControls from './ViewportControls';
+import { loadModelUrl } from '../services/modelLoader';
 
 interface EnhancedGLBViewerProps {
   modelUrl: string;
@@ -127,52 +128,68 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
         setError('Model loading timed out. Please try generating the model again.');
         setIsLoading(false);
       }
-    }, 30000);
+    }, 60000);
 
-    loader.load(
-      modelUrl,
-      (gltf) => {
-        clearTimeout(loadingTimeout);
-        if (disposed) return;
-        const model = gltf.scene;
-        modelRef.current = model;
-
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
-
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const modelScale = 3 / maxDim;
-        model.scale.multiplyScalar(modelScale);
-
-        model.position.x = -center.x * modelScale;
-        model.position.y = -center.y * modelScale;
-        model.position.z = -center.z * modelScale;
-
-        scene.add(model);
-
-        if (onSceneReady) {
-          onSceneReady(scene);
+    loadModelUrl(modelUrl)
+      .then((localUrl) => {
+        if (disposed) {
+          URL.revokeObjectURL(localUrl);
+          return;
         }
+        loader.load(
+          localUrl,
+          (gltf) => {
+            clearTimeout(loadingTimeout);
+            URL.revokeObjectURL(localUrl);
+            if (disposed) return;
+            const model = gltf.scene;
+            modelRef.current = model;
 
-        setIsLoading(false);
-      },
-      undefined,
-      (loadError) => {
+            model.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const modelScale = 3 / maxDim;
+            model.scale.multiplyScalar(modelScale);
+
+            model.position.x = -center.x * modelScale;
+            model.position.y = -center.y * modelScale;
+            model.position.z = -center.z * modelScale;
+
+            scene.add(model);
+
+            if (onSceneReady) {
+              onSceneReady(scene);
+            }
+
+            setIsLoading(false);
+          },
+          undefined,
+          (loadError) => {
+            clearTimeout(loadingTimeout);
+            URL.revokeObjectURL(localUrl);
+            if (disposed) return;
+            console.error('Error loading GLB from blob:', loadError);
+            setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
+            setIsLoading(false);
+          }
+        );
+      })
+      .catch((fetchErr) => {
         clearTimeout(loadingTimeout);
         if (disposed) return;
-        console.error('Error loading GLB:', loadError);
+        console.error('Error fetching model:', fetchErr);
         setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
         setIsLoading(false);
-      }
-    );
+      });
 
     const animate = () => {
       animationFrameRef.current = requestAnimationFrame(animate);

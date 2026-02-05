@@ -9,6 +9,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { Settings, Download, Sun, Lightbulb, Eye, Film, Calculator } from 'lucide-react';
 import { ModelAnimator } from './ModelAnimator';
 import PrintEstimator from './PrintEstimator';
+import { loadModelUrl } from '../services/modelLoader';
 
 interface GLBViewerProps {
   modelUrl: string;
@@ -136,54 +137,71 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     gridRef.current = gridHelper;
 
     const loader = new GLTFLoader();
+    let cancelled = false;
 
     const loadingTimeout = setTimeout(() => {
-      if (isLoading) {
+      if (!cancelled) {
         console.error('Model loading timeout');
         setError('Model loading timed out. Please try generating the model again.');
         setIsLoading(false);
       }
-    }, 30000);
+    }, 60000);
 
-    loader.load(
-      modelUrl,
-      (gltf) => {
-        clearTimeout(loadingTimeout);
-        const model = gltf.scene;
-        modelRef.current = model;
+    loadModelUrl(modelUrl)
+      .then((localUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(localUrl);
+          return;
+        }
+        loader.load(
+          localUrl,
+          (gltf) => {
+            clearTimeout(loadingTimeout);
+            URL.revokeObjectURL(localUrl);
+            if (cancelled) return;
+            const model = gltf.scene;
+            modelRef.current = model;
 
-        model.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
+            model.traverse((child) => {
+              if ((child as THREE.Mesh).isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 3 / maxDim;
+            model.scale.multiplyScalar(scale);
+
+            model.position.x = -center.x * scale;
+            model.position.y = -center.y * scale;
+            model.position.z = -center.z * scale;
+
+            scene.add(model);
+            setIsLoading(false);
+          },
+          undefined,
+          (loadErr) => {
+            clearTimeout(loadingTimeout);
+            URL.revokeObjectURL(localUrl);
+            if (cancelled) return;
+            console.error('Error loading GLB from blob:', loadErr);
+            setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
+            setIsLoading(false);
           }
-        });
-
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 3 / maxDim;
-        model.scale.multiplyScalar(scale);
-
-        model.position.x = -center.x * scale;
-        model.position.y = -center.y * scale;
-        model.position.z = -center.z * scale;
-
-        scene.add(model);
-        setIsLoading(false);
-      },
-      (progress) => {
-        console.log(`Loading: ${(progress.loaded / progress.total) * 100}%`);
-      },
-      (error) => {
+        );
+      })
+      .catch((fetchErr) => {
         clearTimeout(loadingTimeout);
-        console.error('Error loading GLB:', error);
+        if (cancelled) return;
+        console.error('Error fetching model:', fetchErr);
         setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
         setIsLoading(false);
-      }
-    );
+      });
 
     let lastTime = 0;
     const targetFPS = 60;
@@ -224,6 +242,8 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelled = true;
+      clearTimeout(loadingTimeout);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
