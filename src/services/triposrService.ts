@@ -67,13 +67,18 @@ const QUALITY_TO_MODEL: Record<QualityPreset, string> = {
   ultra: 'latest',
 };
 
+export interface ProgressCallback {
+  (progress: number, message: string): void;
+}
+
 export async function generateModelFromImage(
   _imageUrl: string,
   file: File,
   additionalFiles?: File[],
   instructions?: string,
   qualityPreset?: QualityPreset,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onProgress?: ProgressCallback
 ): Promise<TripoSRResult> {
   if (signal?.aborted) {
     throw new Error('Request was cancelled before starting');
@@ -92,10 +97,12 @@ export async function generateModelFromImage(
     throw new Error('Maximální počet obrázků je 10');
   }
 
+  onProgress?.(0.02, 'Kontroluji cache...');
   const imageHash = await generateImageHash(file);
 
   const cachedUrl = await getCachedModel(imageHash, instructions);
   if (cachedUrl) {
+    onProgress?.(1, 'Nalezeno v cache!');
     return {
       model_url: cachedUrl,
       status: 'SUCCEEDED',
@@ -109,6 +116,8 @@ export async function generateModelFromImage(
     async () => {
       checkRateLimit();
 
+      onProgress?.(0.05, 'Pripravuji obrazky...');
+
       let filesToProcess = [file];
       if (additionalFiles && additionalFiles.length > 0) {
         filesToProcess = [file, ...additionalFiles];
@@ -121,6 +130,8 @@ export async function generateModelFromImage(
         filesToProcess = processedFiles.map(p => p.file);
       }
 
+      onProgress?.(0.08, 'Konvertuji do base64...');
+
       const dataUrls = await Promise.all(
         filesToProcess.map(f => fileToBase64(f))
       );
@@ -132,15 +143,19 @@ export async function generateModelFromImage(
         throw new Error('Request was cancelled before API call');
       }
 
+      onProgress?.(0.1, 'Odesilam do AI enginu...');
+
       const taskId = await meshyService.createImageTo3D(dataUrls[0], {
         enable_pbr: true,
         ai_model: aiModel,
         ...(instructions && { texture_prompt: instructions.substring(0, 600) }),
       });
 
-      const maxAttempts = 90;
+      onProgress?.(0.12, 'Task vytvoren, generuji model...');
+
+      const maxAttempts = 120;
       let attempts = 0;
-      let pollDelay = 2000;
+      let pollDelay = 1500;
 
       while (attempts < maxAttempts) {
         if (signal?.aborted) {
@@ -155,10 +170,29 @@ export async function generateModelFromImage(
           });
         });
 
-        pollDelay = Math.min(pollDelay * 1.15, 10000);
+        if (attempts < 5) {
+          pollDelay = 1500;
+        } else if (attempts < 15) {
+          pollDelay = 2500;
+        } else {
+          pollDelay = Math.min(pollDelay * 1.1, 6000);
+        }
         attempts++;
 
         const statusData = await meshyService.getTaskStatus(taskId, 'image-to-3d');
+
+        if (statusData.progress !== undefined) {
+          const apiProgress = statusData.progress / 100;
+          const mappedProgress = 0.12 + apiProgress * 0.83;
+          const stage = apiProgress < 0.3
+            ? 'Analyzuji strukturu...'
+            : apiProgress < 0.6
+              ? 'Generuji geometrii...'
+              : apiProgress < 0.85
+                ? 'Aplikuji textury...'
+                : 'Finalizuji model...';
+          onProgress?.(mappedProgress, stage);
+        }
 
         if (statusData.status === 'SUCCEEDED') {
           const glbUrl = statusData.model_urls?.glb;
@@ -167,6 +201,7 @@ export async function generateModelFromImage(
             throw new Error('Invalid output from Meshy.ai - no model file URL found');
           }
 
+          onProgress?.(0.97, 'Ukladam do cache...');
           await saveCachedModel(imageHash, glbUrl, instructions);
 
           return {

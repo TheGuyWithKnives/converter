@@ -14,7 +14,7 @@ import ThreeViewer from './components/ThreeViewer';
 import GLBViewer from './components/GLBViewer';
 import EnhancedGLBViewer from './components/EnhancedGLBViewer';
 import ParameterControls from './components/ParameterControls';
-import ProgressBar from './components/ProgressBar';
+import LoadingEntertainment from './components/LoadingEntertainment';
 import ImageEditor from './components/ImageEditor';
 import { TextTo3DGenerator } from './components/TextTo3DGenerator';
 import { RiggingControl } from './components/RiggingControl';
@@ -88,17 +88,14 @@ function App() {
     setMesh(null);
 
     try {
-      const imageCount = (additionalFiles?.length || 0) + 1;
-      setProgressMessage(`Analyzuji ${imageCount} vstupu...`);
-      setProgress(0.1);
-
       const result = await generateModelFromImage(
         imageUrl, file, additionalFiles, userInstructions,
-        quality || qualityPreset, signal
+        quality || qualityPreset, signal,
+        (p, msg) => {
+          setProgress(p);
+          setProgressMessage(msg);
+        }
       );
-
-      setProgress(0.9);
-      setProgressMessage('Finalizuji geometrii...');
 
       if (result.model_url) {
         setAiModelUrl(result.model_url);
@@ -254,9 +251,12 @@ function App() {
 
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/95 backdrop-blur-md">
-          <div className="w-full max-w-md p-8 bg-brand-panel border border-brand-accent rounded-2xl shadow-glow-strong mx-4">
-            <ProgressBar progress={progress} message={progressMessage} onCancel={cancelProcessing} cancellable={true} />
-          </div>
+          <LoadingEntertainment
+            progress={progress}
+            message={progressMessage}
+            onCancel={cancelProcessing}
+            cancellable={true}
+          />
         </div>
       )}
 
