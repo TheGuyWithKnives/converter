@@ -1,16 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  RotateCw,
-  Crop,
-  Palette,
-  Undo,
-  Redo,
-  Check,
-  X,
-  ZoomIn,
-  ZoomOut,
-  Eraser
+  Undo, Redo, Check, X, ZoomIn, ZoomOut,
+  RotateCw, FlipHorizontal, FlipVertical,
+  SlidersHorizontal, Eraser, Download, RotateCcw
 } from 'lucide-react';
+
+import { EditorToolbar } from './editor/EditorToolbar';
+import { EditorProperties } from './editor/EditorProperties';
+import { EditorLayers } from './editor/EditorLayers';
+import { EditorFilters } from './editor/EditorFilters';
+import type {
+  ToolType, Layer, BrushSettings, TextSettings, ShapeSettings,
+  Point, BlendMode, FilterType, ColorAdjustments, HistoryEntry
+} from './editor/editorTypes';
+import {
+  createLayer, drawBrushStroke, floodFill, drawShape, drawText,
+  applyBlurBrush, applyFilter, applyColorAdjustments, getPixelColor,
+  generateCheckerboard,
+} from './editor/editorUtils';
 
 interface ImageEditorProps {
   imageFile: File;
@@ -18,519 +25,823 @@ interface ImageEditorProps {
   onCancel: () => void;
 }
 
-interface EditState {
-  rotation: number;
-  hue: number;
-  saturation: number;
-  lightness: number;
-  brightness: number;
-  contrast: number;
-  crop: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null;
-  removedBackground: boolean;
-}
-
-type Tool = 'none' | 'crop' | 'move';
+let layerIdCounter = 0;
+function nextLayerId() { return `layer_${++layerIdCounter}`; }
 
 export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditorProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
-  const [tool, setTool] = useState<Tool>('none');
-  const [activeTab, setActiveTab] = useState<'transform' | 'colors'>('transform');
+  const displayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const [currentState, setCurrentState] = useState<EditState>({
-    rotation: 0,
-    hue: 0,
-    saturation: 100,
-    lightness: 100,
-    brightness: 100,
-    contrast: 100,
-    crop: null,
-    removedBackground: false,
+  const [image, setImage] = useState<HTMLImageElement | null>(null);
+  const [canvasWidth, setCanvasWidth] = useState(800);
+  const [canvasHeight, setCanvasHeight] = useState(600);
+
+  const [layers, setLayers] = useState<Layer[]>([]);
+  const [activeLayerId, setActiveLayerId] = useState('');
+
+  const [tool, setTool] = useState<ToolType>('brush');
+  const [brush, setBrush] = useState<BrushSettings>({
+    size: 10, opacity: 100, hardness: 80, color: '#ffffff',
+  });
+  const [textSettings, setTextSettings] = useState<TextSettings>({
+    content: 'Text', fontFamily: 'Arial', fontSize: 32,
+    fontWeight: 'normal', fontStyle: 'normal', color: '#ffffff', align: 'left',
+  });
+  const [shapeSettings, setShapeSettings] = useState<ShapeSettings>({
+    type: 'rectangle', strokeColor: '#ffffff', fillColor: '#0078d4',
+    strokeWidth: 2, filled: false,
   });
 
-  const [history, setHistory] = useState<EditState[]>([currentState]);
-  const [historyIndex, setHistoryIndex] = useState(0);
-
-  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
-  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [lastPoint, setLastPoint] = useState<Point | null>(null);
+  const [shapeStart, setShapeStart] = useState<Point | null>(null);
+  const [cropStart, setCropStart] = useState<Point | null>(null);
+  const [cropEnd, setCropEnd] = useState<Point | null>(null);
+  const [cloneSource, setCloneSource] = useState<Point | null>(null);
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const checkerRef = useRef<HTMLCanvasElement | null>(null);
+  const shapePreviewRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     const img = new Image();
-    img.onload = () => setImage(img);
-    img.src = URL.createObjectURL(imageFile);
+    img.onload = () => {
+      setImage(img);
 
+      let w = img.width;
+      let h = img.height;
+      const maxW = 1600;
+      const maxH = 1200;
+      if (w > maxW || h > maxH) {
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      setCanvasWidth(w);
+      setCanvasHeight(h);
+
+      checkerRef.current = generateCheckerboard(w, h);
+
+      const bgCanvas = createLayer(w, h);
+      const bgCtx = bgCanvas.getContext('2d')!;
+      bgCtx.drawImage(img, 0, 0, w, h);
+
+      const bgLayer: Layer = {
+        id: nextLayerId(),
+        name: 'Pozadi',
+        canvas: bgCanvas,
+        visible: true,
+        opacity: 1,
+        blendMode: 'normal',
+        locked: false,
+      };
+
+      setLayers([bgLayer]);
+      setActiveLayerId(bgLayer.id);
+
+      const initialHistory: HistoryEntry = {
+        layerSnapshots: new Map([[bgLayer.id, bgCtx.getImageData(0, 0, w, h)]]),
+        description: 'Nacteni obrazku',
+      };
+      setHistory([initialHistory]);
+      setHistoryIndex(0);
+    };
+    img.src = URL.createObjectURL(imageFile);
     return () => URL.revokeObjectURL(img.src);
   }, [imageFile]);
 
-  const saveToHistory = useCallback((newState: EditState) => {
+  const saveHistorySnapshot = useCallback((desc: string) => {
+    const snapshots = new Map<string, ImageData>();
+    layers.forEach(l => {
+      const ctx = l.canvas.getContext('2d')!;
+      snapshots.set(l.id, ctx.getImageData(0, 0, l.canvas.width, l.canvas.height));
+    });
+    const entry: HistoryEntry = { layerSnapshots: snapshots, description: desc };
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(newState);
+    newHistory.push(entry);
+    if (newHistory.length > 50) newHistory.shift();
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
-    setCurrentState(newState);
-  }, [history, historyIndex]);
+  }, [layers, history, historyIndex]);
 
-  const undo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      setCurrentState(history[historyIndex - 1]);
-    }
-  };
+  const undo = useCallback(() => {
+    if (historyIndex <= 0) return;
+    const newIdx = historyIndex - 1;
+    const entry = history[newIdx];
+    setLayers(prev => prev.map(l => {
+      const snap = entry.layerSnapshots.get(l.id);
+      if (snap) {
+        const ctx = l.canvas.getContext('2d')!;
+        ctx.clearRect(0, 0, l.canvas.width, l.canvas.height);
+        ctx.putImageData(snap, 0, 0);
+      }
+      return { ...l };
+    }));
+    setHistoryIndex(newIdx);
+  }, [historyIndex, history]);
 
-  const redo = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      setCurrentState(history[historyIndex + 1]);
-    }
-  };
+  const redo = useCallback(() => {
+    if (historyIndex >= history.length - 1) return;
+    const newIdx = historyIndex + 1;
+    const entry = history[newIdx];
+    setLayers(prev => prev.map(l => {
+      const snap = entry.layerSnapshots.get(l.id);
+      if (snap) {
+        const ctx = l.canvas.getContext('2d')!;
+        ctx.clearRect(0, 0, l.canvas.width, l.canvas.height);
+        ctx.putImageData(snap, 0, 0);
+      }
+      return { ...l };
+    }));
+    setHistoryIndex(newIdx);
+  }, [historyIndex, history]);
 
-  const drawCanvas = useCallback(() => {
-    if (!canvasRef.current || !image) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+  const compositeAndRender = useCallback(() => {
+    const displayCanvas = displayCanvasRef.current;
+    if (!displayCanvas) return;
+    const ctx = displayCanvas.getContext('2d');
     if (!ctx) return;
 
-    const maxWidth = 800;
-    const maxHeight = 600;
-    let displayWidth = image.width;
-    let displayHeight = image.height;
+    displayCanvas.width = canvasWidth;
+    displayCanvas.height = canvasHeight;
 
-    if (displayWidth > maxWidth || displayHeight > maxHeight) {
-      const ratio = Math.min(maxWidth / displayWidth, maxHeight / displayHeight);
-      displayWidth *= ratio;
-      displayHeight *= ratio;
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    if (checkerRef.current) {
+      ctx.drawImage(checkerRef.current, 0, 0);
     }
 
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
+    layers.forEach(layer => {
+      if (!layer.visible) return;
+      ctx.save();
+      ctx.globalAlpha = layer.opacity;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
+      const blendMap: Record<BlendMode, GlobalCompositeOperation> = {
+        normal: 'source-over',
+        multiply: 'multiply',
+        screen: 'screen',
+        overlay: 'overlay',
+      };
+      ctx.globalCompositeOperation = blendMap[layer.blendMode] || 'source-over';
+      ctx.drawImage(layer.canvas, 0, 0);
+      ctx.restore();
+    });
 
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((currentState.rotation * Math.PI) / 180);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+    if (shapePreviewRef.current && (tool === 'shape' || tool === 'crop' || tool === 'selection')) {
+      ctx.drawImage(shapePreviewRef.current, 0, 0);
+    }
 
-    ctx.filter = `
-      hue-rotate(${currentState.hue}deg)
-      saturate(${currentState.saturation}%)
-      brightness(${currentState.brightness}%)
-      contrast(${currentState.contrast}%)
-    `;
-
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    ctx.restore();
-
-    if (tool === 'crop' && cropStart && cropEnd) {
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      const width = cropEnd.x - cropStart.x;
-      const height = cropEnd.y - cropStart.y;
-      ctx.strokeRect(cropStart.x, cropStart.y, width, height);
+    if (selectionRect) {
+      ctx.save();
+      ctx.strokeStyle = '#0078d4';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
       ctx.setLineDash([]);
-
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(0, 0, canvas.width, cropStart.y);
-      ctx.fillRect(0, cropStart.y, cropStart.x, height);
-      ctx.fillRect(cropEnd.x, cropStart.y, canvas.width - cropEnd.x, height);
-      ctx.fillRect(0, cropEnd.y, canvas.width, canvas.height - cropEnd.y);
+      ctx.restore();
     }
-  }, [image, currentState, tool, cropStart, cropEnd]);
+  }, [layers, canvasWidth, canvasHeight, tool, selectionRect]);
 
   useEffect(() => {
-    drawCanvas();
-  }, [drawCanvas]);
+    compositeAndRender();
+  }, [compositeAndRender]);
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (tool !== 'crop') return;
+  const getActiveLayer = useCallback(() => {
+    return layers.find(l => l.id === activeLayerId);
+  }, [layers, activeLayerId]);
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const getCanvasPoint = useCallback((e: React.MouseEvent): Point => {
+    const displayCanvas = displayCanvasRef.current;
+    if (!displayCanvas) return { x: 0, y: 0 };
+    const rect = displayCanvas.getBoundingClientRect();
+    const scaleX = canvasWidth / rect.width;
+    const scaleY = canvasHeight / rect.height;
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    };
+  }, [canvasWidth, canvasHeight]);
 
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    const point = getCanvasPoint(e);
+    const layer = getActiveLayer();
 
-    setCropStart({ x, y });
-    setCropEnd({ x, y });
-    setIsDragging(true);
-  };
+    if (tool === 'move') {
+      setIsDrawing(true);
+      setLastPoint({ x: e.clientX, y: e.clientY });
+      return;
+    }
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDragging || tool !== 'crop' || !cropStart) return;
+    if (!layer || layer.locked) return;
+    const ctx = layer.canvas.getContext('2d');
+    if (!ctx) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.max(0, Math.min(e.clientX - rect.left, canvas.width));
-    const y = Math.max(0, Math.min(e.clientY - rect.top, canvas.height));
-
-    setCropEnd({ x, y });
-  };
-
-  const handleCanvasMouseUp = () => {
-    if (tool === 'crop' && cropStart && cropEnd) {
-      const minX = Math.min(cropStart.x, cropEnd.x);
-      const minY = Math.min(cropStart.y, cropEnd.y);
-      const width = Math.abs(cropEnd.x - cropStart.x);
-      const height = Math.abs(cropEnd.y - cropStart.y);
-
-      if (width > 10 && height > 10) {
-        saveToHistory({
-          ...currentState,
-          crop: { x: minX, y: minY, width, height },
-        });
+    if (tool === 'brush' || tool === 'eraser') {
+      setIsDrawing(true);
+      setLastPoint(point);
+      drawBrushStroke(ctx, point, point, brush, tool === 'eraser');
+      compositeAndRender();
+    } else if (tool === 'blur-brush') {
+      setIsDrawing(true);
+      setLastPoint(point);
+      applyBlurBrush(ctx, point.x, point.y, brush.size / 2, 2);
+      compositeAndRender();
+    } else if (tool === 'clone') {
+      if (e.altKey) {
+        setCloneSource(point);
+        return;
       }
+      if (cloneSource) {
+        setIsDrawing(true);
+        setLastPoint(point);
+      }
+    } else if (tool === 'fill') {
+      floodFill(ctx, point.x, point.y, brush.color);
+      saveHistorySnapshot('Vyplneni');
+      compositeAndRender();
+    } else if (tool === 'eyedropper') {
+      const color = getPixelColor(ctx, point.x, point.y);
+      setBrush(prev => ({ ...prev, color }));
+      setTool('brush');
+    } else if (tool === 'text') {
+      drawText(ctx, textSettings.content, point.x, point.y,
+        textSettings.fontFamily, textSettings.fontSize,
+        textSettings.fontWeight, textSettings.fontStyle,
+        textSettings.color, textSettings.align);
+      saveHistorySnapshot('Text');
+      compositeAndRender();
+    } else if (tool === 'shape') {
+      setIsDrawing(true);
+      setShapeStart(point);
+      shapePreviewRef.current = createLayer(canvasWidth, canvasHeight);
+    } else if (tool === 'crop') {
+      setIsDrawing(true);
+      setCropStart(point);
+      setCropEnd(point);
+      shapePreviewRef.current = createLayer(canvasWidth, canvasHeight);
+    } else if (tool === 'selection') {
+      setIsDrawing(true);
+      setCropStart(point);
+      setCropEnd(point);
+      shapePreviewRef.current = createLayer(canvasWidth, canvasHeight);
     }
-    setIsDragging(false);
-  };
+  }, [tool, brush, textSettings, getCanvasPoint, getActiveLayer, compositeAndRender,
+      saveHistorySnapshot, cloneSource, canvasWidth, canvasHeight, shapeSettings]);
 
-  const handleRotate = () => {
-    saveToHistory({
-      ...currentState,
-      rotation: (currentState.rotation + 90) % 360,
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDrawing) return;
+    const point = getCanvasPoint(e);
+
+    if (tool === 'move') {
+      if (lastPoint) {
+        setPanX(prev => prev + (e.clientX - lastPoint.x));
+        setPanY(prev => prev + (e.clientY - lastPoint.y));
+        setLastPoint({ x: e.clientX, y: e.clientY });
+      }
+      return;
+    }
+
+    const layer = getActiveLayer();
+    if (!layer || layer.locked) return;
+    const ctx = layer.canvas.getContext('2d');
+    if (!ctx) return;
+
+    if ((tool === 'brush' || tool === 'eraser') && lastPoint) {
+      drawBrushStroke(ctx, lastPoint, point, brush, tool === 'eraser');
+      setLastPoint(point);
+      compositeAndRender();
+    } else if (tool === 'blur-brush' && lastPoint) {
+      applyBlurBrush(ctx, point.x, point.y, brush.size / 2, 1);
+      setLastPoint(point);
+      compositeAndRender();
+    } else if (tool === 'clone' && lastPoint && cloneSource) {
+      const dx = point.x - lastPoint.x;
+      const dy = point.y - lastPoint.y;
+      const sourceX = cloneSource.x + (point.x - lastPoint.x);
+      const sourceY = cloneSource.y + (point.y - lastPoint.y);
+      const r = brush.size / 2;
+      try {
+        const srcData = ctx.getImageData(
+          Math.max(0, sourceX - r), Math.max(0, sourceY - r),
+          brush.size, brush.size
+        );
+        ctx.putImageData(srcData, point.x - r, point.y - r);
+      } catch { /* ignore out of bounds */ }
+      setLastPoint(point);
+      compositeAndRender();
+    } else if (tool === 'shape' && shapeStart && shapePreviewRef.current) {
+      const previewCtx = shapePreviewRef.current.getContext('2d')!;
+      previewCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+      drawShape(previewCtx, shapeSettings.type, shapeStart, point,
+        shapeSettings.strokeColor, shapeSettings.fillColor,
+        shapeSettings.strokeWidth, shapeSettings.filled);
+      compositeAndRender();
+    } else if ((tool === 'crop' || tool === 'selection') && cropStart && shapePreviewRef.current) {
+      setCropEnd(point);
+      const previewCtx = shapePreviewRef.current.getContext('2d')!;
+      previewCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+      const x = Math.min(cropStart.x, point.x);
+      const y = Math.min(cropStart.y, point.y);
+      const w = Math.abs(point.x - cropStart.x);
+      const h = Math.abs(point.y - cropStart.y);
+
+      previewCtx.fillStyle = 'rgba(0,0,0,0.5)';
+      previewCtx.fillRect(0, 0, canvasWidth, y);
+      previewCtx.fillRect(0, y, x, h);
+      previewCtx.fillRect(x + w, y, canvasWidth - x - w, h);
+      previewCtx.fillRect(0, y + h, canvasWidth, canvasHeight - y - h);
+
+      previewCtx.strokeStyle = tool === 'crop' ? '#ff6600' : '#0078d4';
+      previewCtx.lineWidth = 2;
+      previewCtx.setLineDash([6, 3]);
+      previewCtx.strokeRect(x, y, w, h);
+      previewCtx.setLineDash([]);
+
+      compositeAndRender();
+    }
+  }, [isDrawing, tool, lastPoint, brush, getCanvasPoint, getActiveLayer,
+      compositeAndRender, cloneSource, shapeStart, shapeSettings, cropStart,
+      canvasWidth, canvasHeight]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDrawing) return;
+
+    if (tool === 'brush' || tool === 'eraser') {
+      saveHistorySnapshot(tool === 'brush' ? 'Kresba' : 'Mazani');
+    } else if (tool === 'blur-brush') {
+      saveHistorySnapshot('Rozmazani');
+    } else if (tool === 'clone') {
+      saveHistorySnapshot('Klonovani');
+    } else if (tool === 'shape' && shapeStart && shapePreviewRef.current) {
+      const layer = getActiveLayer();
+      if (layer) {
+        const ctx = layer.canvas.getContext('2d')!;
+        ctx.drawImage(shapePreviewRef.current, 0, 0);
+        saveHistorySnapshot('Tvar');
+      }
+      shapePreviewRef.current = null;
+    } else if (tool === 'crop' && cropStart && cropEnd) {
+      const x = Math.min(cropStart.x, cropEnd.x);
+      const y = Math.min(cropStart.y, cropEnd.y);
+      const w = Math.abs(cropEnd.x - cropStart.x);
+      const h = Math.abs(cropEnd.y - cropStart.y);
+
+      if (w > 10 && h > 10) {
+        applyCrop(x, y, w, h);
+      }
+      shapePreviewRef.current = null;
+      setCropStart(null);
+      setCropEnd(null);
+    } else if (tool === 'selection' && cropStart && cropEnd) {
+      const x = Math.min(cropStart.x, cropEnd.x);
+      const y = Math.min(cropStart.y, cropEnd.y);
+      const w = Math.abs(cropEnd.x - cropStart.x);
+      const h = Math.abs(cropEnd.y - cropStart.y);
+      if (w > 5 && h > 5) {
+        setSelectionRect({ x, y, w, h });
+      } else {
+        setSelectionRect(null);
+      }
+      shapePreviewRef.current = null;
+      setCropStart(null);
+      setCropEnd(null);
+    }
+
+    setIsDrawing(false);
+    setLastPoint(null);
+    setShapeStart(null);
+    compositeAndRender();
+  }, [isDrawing, tool, saveHistorySnapshot, getActiveLayer, compositeAndRender,
+      cropStart, cropEnd, shapeStart]);
+
+  const applyCrop = useCallback((x: number, y: number, w: number, h: number) => {
+    const newLayers = layers.map(layer => {
+      const newCanvas = createLayer(w, h);
+      const newCtx = newCanvas.getContext('2d')!;
+      newCtx.drawImage(layer.canvas, x, y, w, h, 0, 0, w, h);
+      return { ...layer, canvas: newCanvas };
     });
-  };
+    setLayers(newLayers);
+    setCanvasWidth(w);
+    setCanvasHeight(h);
+    checkerRef.current = generateCheckerboard(w, h);
+    saveHistorySnapshot('Orez');
+  }, [layers, saveHistorySnapshot]);
 
-  const handleReset = (type: 'transform' | 'colors') => {
-    if (type === 'transform') {
-      saveToHistory({
-        ...currentState,
-        rotation: 0,
-        crop: null,
-      });
-    } else {
-      saveToHistory({
-        ...currentState,
-        hue: 0,
-        saturation: 100,
-        lightness: 100,
-        brightness: 100,
-        contrast: 100,
-      });
+  const handleAddLayer = useCallback(() => {
+    const newCanvas = createLayer(canvasWidth, canvasHeight);
+    const newLayer: Layer = {
+      id: nextLayerId(),
+      name: `Vrstva ${layers.length + 1}`,
+      canvas: newCanvas,
+      visible: true,
+      opacity: 1,
+      blendMode: 'normal',
+      locked: false,
+    };
+    setLayers(prev => [...prev, newLayer]);
+    setActiveLayerId(newLayer.id);
+    saveHistorySnapshot('Nova vrstva');
+  }, [canvasWidth, canvasHeight, layers.length, saveHistorySnapshot]);
+
+  const handleDeleteLayer = useCallback((id: string) => {
+    if (layers.length <= 1) return;
+    const newLayers = layers.filter(l => l.id !== id);
+    setLayers(newLayers);
+    if (activeLayerId === id) {
+      setActiveLayerId(newLayers[newLayers.length - 1].id);
     }
-  };
+    saveHistorySnapshot('Smazani vrstvy');
+  }, [layers, activeLayerId, saveHistorySnapshot]);
 
-  const handleRemoveBackground = async () => {
-    if (!image) return;
+  const handleDuplicateLayer = useCallback((id: string) => {
+    const source = layers.find(l => l.id === id);
+    if (!source) return;
+    const newCanvas = createLayer(canvasWidth, canvasHeight);
+    const newCtx = newCanvas.getContext('2d')!;
+    newCtx.drawImage(source.canvas, 0, 0);
+    const newLayer: Layer = {
+      id: nextLayerId(),
+      name: `${source.name} (kopie)`,
+      canvas: newCanvas,
+      visible: true,
+      opacity: source.opacity,
+      blendMode: source.blendMode,
+      locked: false,
+    };
+    const idx = layers.findIndex(l => l.id === id);
+    const newLayers = [...layers];
+    newLayers.splice(idx + 1, 0, newLayer);
+    setLayers(newLayers);
+    setActiveLayerId(newLayer.id);
+    saveHistorySnapshot('Duplikace vrstvy');
+  }, [layers, canvasWidth, canvasHeight, saveHistorySnapshot]);
+
+  const handleMoveLayer = useCallback((id: string, dir: 'up' | 'down') => {
+    const idx = layers.findIndex(l => l.id === id);
+    if (dir === 'up' && idx < layers.length - 1) {
+      const newLayers = [...layers];
+      [newLayers[idx], newLayers[idx + 1]] = [newLayers[idx + 1], newLayers[idx]];
+      setLayers(newLayers);
+    } else if (dir === 'down' && idx > 0) {
+      const newLayers = [...layers];
+      [newLayers[idx], newLayers[idx - 1]] = [newLayers[idx - 1], newLayers[idx]];
+      setLayers(newLayers);
+    }
+  }, [layers]);
+
+  const handleMergeDown = useCallback((id: string) => {
+    const idx = layers.findIndex(l => l.id === id);
+    if (idx <= 0) return;
+    const upper = layers[idx];
+    const lower = layers[idx - 1];
+    const ctx = lower.canvas.getContext('2d')!;
+    ctx.globalAlpha = upper.opacity;
+    ctx.drawImage(upper.canvas, 0, 0);
+    ctx.globalAlpha = 1;
+    const newLayers = layers.filter(l => l.id !== id);
+    setLayers(newLayers);
+    setActiveLayerId(lower.id);
+    saveHistorySnapshot('Slouceni vrstev');
+  }, [layers, saveHistorySnapshot]);
+
+  const handleApplyFilter = useCallback((filter: FilterType, intensity: number) => {
+    const layer = getActiveLayer();
+    if (!layer) return;
+    const ctx = layer.canvas.getContext('2d');
+    if (!ctx) return;
+    applyFilter(ctx, filter, intensity);
+    saveHistorySnapshot(`Filtr: ${filter}`);
+    compositeAndRender();
+    setShowFilters(false);
+  }, [getActiveLayer, saveHistorySnapshot, compositeAndRender]);
+
+  const handleApplyAdjustments = useCallback((adj: ColorAdjustments) => {
+    const layer = getActiveLayer();
+    if (!layer) return;
+    const ctx = layer.canvas.getContext('2d');
+    if (!ctx) return;
+    applyColorAdjustments(ctx, adj.brightness, adj.contrast, adj.saturation, adj.hue);
+    saveHistorySnapshot('Uprava barev');
+    compositeAndRender();
+    setShowFilters(false);
+  }, [getActiveLayer, saveHistorySnapshot, compositeAndRender]);
+
+  const handleRotate = useCallback((deg: number) => {
+    const newW = deg === 90 || deg === -90 ? canvasHeight : canvasWidth;
+    const newH = deg === 90 || deg === -90 ? canvasWidth : canvasHeight;
+
+    const newLayers = layers.map(layer => {
+      const newCanvas = createLayer(newW, newH);
+      const newCtx = newCanvas.getContext('2d')!;
+      newCtx.translate(newW / 2, newH / 2);
+      newCtx.rotate((deg * Math.PI) / 180);
+      newCtx.drawImage(layer.canvas, -canvasWidth / 2, -canvasHeight / 2);
+      return { ...layer, canvas: newCanvas };
+    });
+
+    setLayers(newLayers);
+    setCanvasWidth(newW);
+    setCanvasHeight(newH);
+    checkerRef.current = generateCheckerboard(newW, newH);
+    saveHistorySnapshot('Rotace');
+  }, [layers, canvasWidth, canvasHeight, saveHistorySnapshot]);
+
+  const handleFlip = useCallback((axis: 'h' | 'v') => {
+    const newLayers = layers.map(layer => {
+      const newCanvas = createLayer(canvasWidth, canvasHeight);
+      const newCtx = newCanvas.getContext('2d')!;
+      if (axis === 'h') {
+        newCtx.translate(canvasWidth, 0);
+        newCtx.scale(-1, 1);
+      } else {
+        newCtx.translate(0, canvasHeight);
+        newCtx.scale(1, -1);
+      }
+      newCtx.drawImage(layer.canvas, 0, 0);
+      return { ...layer, canvas: newCanvas };
+    });
+    setLayers(newLayers);
+    saveHistorySnapshot(axis === 'h' ? 'Prevratit H' : 'Prevratit V');
+  }, [layers, canvasWidth, canvasHeight, saveHistorySnapshot]);
+
+  const handleRemoveBackground = useCallback(async () => {
+    const layer = getActiveLayer();
+    if (!layer) return;
 
     try {
-      const { removeBackground } = await import('../services/backgroundRemoval');
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvasWidth;
+      tempCanvas.height = canvasHeight;
+      const tempCtx = tempCanvas.getContext('2d')!;
+      tempCtx.drawImage(layer.canvas, 0, 0);
 
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      ctx.drawImage(image, 0, 0);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      const processedData = await removeBackground(imageData);
-      ctx.putImageData(processedData, 0, 0);
-
-      const newImg = new Image();
-      newImg.onload = () => {
-        setImage(newImg);
-        saveToHistory({
-          ...currentState,
-          removedBackground: true,
-        });
+      const blob = await new Promise<Blob>((resolve) =>
+        tempCanvas.toBlob(b => resolve(b!), 'image/png')
+      );
+      const imgUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const { removeBackground } = await import('../services/backgroundRemoval');
+          const result = await removeBackground(img);
+          const ctx = layer.canvas.getContext('2d')!;
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+          ctx.drawImage(result.imageWithoutBg, 0, 0, canvasWidth, canvasHeight);
+          saveHistorySnapshot('Odstraneni pozadi');
+          compositeAndRender();
+          setLayers(prev => [...prev]);
+        } catch (err) {
+          console.error('Background removal failed:', err);
+        }
+        URL.revokeObjectURL(imgUrl);
       };
-      newImg.src = canvas.toDataURL();
-    } catch (error) {
-      console.error('Background removal failed:', error);
-      alert('Nepodařilo se odstranit pozadí');
+      img.src = imgUrl;
+    } catch (err) {
+      console.error('Background removal failed:', err);
     }
-  };
+  }, [getActiveLayer, canvasWidth, canvasHeight, saveHistorySnapshot, compositeAndRender]);
 
-  const handleSave = async () => {
-    if (!canvasRef.current) return;
+  const handleSave = useCallback(() => {
+    const finalCanvas = createLayer(canvasWidth, canvasHeight);
+    const ctx = finalCanvas.getContext('2d')!;
 
-    const canvas = canvasRef.current;
+    layers.forEach(layer => {
+      if (!layer.visible) return;
+      ctx.save();
+      ctx.globalAlpha = layer.opacity;
+      const blendMap: Record<BlendMode, GlobalCompositeOperation> = {
+        normal: 'source-over', multiply: 'multiply', screen: 'screen', overlay: 'overlay',
+      };
+      ctx.globalCompositeOperation = blendMap[layer.blendMode] || 'source-over';
+      ctx.drawImage(layer.canvas, 0, 0);
+      ctx.restore();
+    });
 
-    canvas.toBlob((blob) => {
+    finalCanvas.toBlob((blob) => {
       if (!blob) return;
-
-      const file = new File([blob], imageFile.name, {
-        type: 'image/png',
-        lastModified: Date.now(),
-      });
-
+      const file = new File([blob], imageFile.name, { type: 'image/png', lastModified: Date.now() });
       onSave(file);
     }, 'image/png');
-  };
+  }, [layers, canvasWidth, canvasHeight, imageFile, onSave]);
+
+  const handleExportPng = useCallback(() => {
+    const finalCanvas = createLayer(canvasWidth, canvasHeight);
+    const ctx = finalCanvas.getContext('2d')!;
+    layers.forEach(layer => {
+      if (!layer.visible) return;
+      ctx.save();
+      ctx.globalAlpha = layer.opacity;
+      ctx.drawImage(layer.canvas, 0, 0);
+      ctx.restore();
+    });
+    const link = document.createElement('a');
+    link.download = imageFile.name.replace(/\.[^/.]+$/, '') + '_edited.png';
+    link.href = finalCanvas.toDataURL('image/png');
+    link.click();
+  }, [layers, canvasWidth, canvasHeight, imageFile]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z') { e.preventDefault(); undo(); }
+        if (e.key === 'y') { e.preventDefault(); redo(); }
+        if (e.key === 's') { e.preventDefault(); handleSave(); }
+      }
+      if (!e.ctrlKey && !e.metaKey) {
+        const shortcuts: Record<string, ToolType> = {
+          v: 'move', m: 'selection', c: 'crop', b: 'brush',
+          e: 'eraser', g: 'fill', i: 'eyedropper', t: 'text',
+          u: 'shape', r: 'blur-brush', s: 'clone',
+        };
+        if (shortcuts[e.key.toLowerCase()] && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) {
+          setTool(shortcuts[e.key.toLowerCase()]);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, handleSave]);
+
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (containerRef.current?.contains(e.target as Node)) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoom(prev => Math.max(0.1, Math.min(5, prev + delta)));
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  const cursorStyle = (() => {
+    switch (tool) {
+      case 'brush': case 'eraser': case 'blur-brush': case 'clone': return 'crosshair';
+      case 'move': return 'grab';
+      case 'eyedropper': return 'crosshair';
+      case 'fill': return 'crosshair';
+      case 'text': return 'text';
+      case 'crop': case 'selection': return 'crosshair';
+      case 'shape': return 'crosshair';
+      default: return 'default';
+    }
+  })();
+
+  const fitZoom = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const zx = (rect.width - 40) / canvasWidth;
+    const zy = (rect.height - 40) / canvasHeight;
+    setZoom(Math.min(zx, zy, 1));
+    setPanX(0);
+    setPanY(0);
+  }, [canvasWidth, canvasHeight]);
+
+  useEffect(() => {
+    fitZoom();
+  }, [canvasWidth, canvasHeight]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-bold text-slate-800">Editor obrázku</h2>
-
-          <div className="flex gap-2">
-            <button
-              onClick={undo}
-              disabled={historyIndex === 0}
-              className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Zpět (Ctrl+Z)"
-            >
-              <Undo className="w-5 h-5" />
-            </button>
-            <button
-              onClick={redo}
-              disabled={historyIndex === history.length - 1}
-              className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Vpřed (Ctrl+Y)"
-            >
-              <Redo className="w-5 h-5" />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-50 bg-[#1a1a1a] flex flex-col select-none">
+      {/* Top Bar */}
+      <div className="h-10 bg-[#2d2d2d] border-b border-[#444] flex items-center justify-between px-3 shrink-0">
+        <div className="flex items-center gap-1">
+          <button onClick={() => handleRotate(-90)} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Otocit vlevo">
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button onClick={() => handleRotate(90)} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Otocit vpravo">
+            <RotateCw className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#444] mx-1" />
+          <button onClick={() => handleFlip('h')} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Prevratit H">
+            <FlipHorizontal className="w-4 h-4" />
+          </button>
+          <button onClick={() => handleFlip('v')} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Prevratit V">
+            <FlipVertical className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#444] mx-1" />
+          <button onClick={undo} disabled={historyIndex <= 0} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors disabled:opacity-30" title="Zpet (Ctrl+Z)">
+            <Undo className="w-4 h-4" />
+          </button>
+          <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors disabled:opacity-30" title="Vpred (Ctrl+Y)">
+            <Redo className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#444] mx-1" />
+          <button onClick={() => setShowFilters(true)} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Filtry">
+            <SlidersHorizontal className="w-4 h-4" />
+          </button>
+          <button onClick={handleRemoveBackground} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Odstranit pozadi">
+            <Eraser className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#444] mx-1" />
+          <button onClick={() => setZoom(prev => Math.max(0.1, prev - 0.25))} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors">
+            <ZoomOut className="w-4 h-4" />
+          </button>
+          <span className="text-[10px] text-[#ccc] font-mono w-12 text-center">{Math.round(zoom * 100)}%</span>
+          <button onClick={() => setZoom(prev => Math.min(5, prev + 0.25))} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors">
+            <ZoomIn className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 flex items-center justify-center bg-slate-100 p-8 overflow-auto">
-            <div className="relative">
-              <canvas
-                ref={canvasRef}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseUp={handleCanvasMouseUp}
-                onMouseLeave={handleCanvasMouseUp}
-                className={`max-w-full max-h-full shadow-lg ${
-                  tool === 'crop' ? 'cursor-crosshair' : 'cursor-default'
-                }`}
-                style={{ transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)` }}
-              />
-            </div>
-          </div>
-
-          <div className="w-80 bg-white border-l flex flex-col">
-            <div className="flex border-b">
-              <button
-                onClick={() => setActiveTab('transform')}
-                className={`flex-1 px-4 py-3 font-medium transition-colors ${
-                  activeTab === 'transform'
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Transformace
-              </button>
-              <button
-                onClick={() => setActiveTab('colors')}
-                className={`flex-1 px-4 py-3 font-medium transition-colors ${
-                  activeTab === 'colors'
-                    ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                Barvy
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {activeTab === 'transform' && (
-                <>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-slate-700 text-sm">Nástroje</h3>
-
-                    <button
-                      onClick={() => setTool(tool === 'crop' ? 'none' : 'crop')}
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                        tool === 'crop'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      <Crop className="w-4 h-4" />
-                      <span className="text-sm font-medium">Oříznout</span>
-                    </button>
-
-                    <button
-                      onClick={handleRotate}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-                    >
-                      <RotateCw className="w-4 h-4" />
-                      <span className="text-sm font-medium">Otočit 90°</span>
-                    </button>
-
-                    <button
-                      onClick={handleRemoveBackground}
-                      disabled={currentState.removedBackground}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Eraser className="w-4 h-4" />
-                      <span className="text-sm font-medium">
-                        {currentState.removedBackground ? 'Pozadí odstraněno' : 'Odstranit pozadí'}
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-slate-700 text-sm">Zoom</h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setZoom(Math.max(0.5, zoom - 0.25))}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-                      >
-                        <ZoomOut className="w-4 h-4" />
-                        <span className="text-xs">-</span>
-                      </button>
-                      <span className="px-3 py-2 bg-slate-50 rounded-lg text-sm font-medium text-slate-700 min-w-[60px] text-center">
-                        {Math.round(zoom * 100)}%
-                      </span>
-                      <button
-                        onClick={() => setZoom(Math.min(3, zoom + 0.25))}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
-                      >
-                        <ZoomIn className="w-4 h-4" />
-                        <span className="text-xs">+</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {currentState.rotation !== 0 && (
-                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-xs text-blue-700">
-                        Rotace: {currentState.rotation}°
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => handleReset('transform')}
-                    className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    Resetovat transformace
-                  </button>
-                </>
-              )}
-
-              {activeTab === 'colors' && (
-                <>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Odstín: {currentState.hue}°
-                      </label>
-                      <input
-                        type="range"
-                        min="-180"
-                        max="180"
-                        value={currentState.hue}
-                        onChange={(e) => {
-                          const newState = { ...currentState, hue: parseInt(e.target.value) };
-                          setCurrentState(newState);
-                        }}
-                        onMouseUp={() => saveToHistory(currentState)}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Sytost: {currentState.saturation}%
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="200"
-                        value={currentState.saturation}
-                        onChange={(e) => {
-                          const newState = { ...currentState, saturation: parseInt(e.target.value) };
-                          setCurrentState(newState);
-                        }}
-                        onMouseUp={() => saveToHistory(currentState)}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Jas: {currentState.brightness}%
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="200"
-                        value={currentState.brightness}
-                        onChange={(e) => {
-                          const newState = { ...currentState, brightness: parseInt(e.target.value) };
-                          setCurrentState(newState);
-                        }}
-                        onMouseUp={() => saveToHistory(currentState)}
-                        className="w-full"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Kontrast: {currentState.contrast}%
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="200"
-                        value={currentState.contrast}
-                        onChange={(e) => {
-                          const newState = { ...currentState, contrast: parseInt(e.target.value) };
-                          setCurrentState(newState);
-                        }}
-                        onMouseUp={() => saveToHistory(currentState)}
-                        className="w-full"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleReset('colors')}
-                    className="w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    Resetovat barvy
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between p-4 border-t bg-slate-50">
-          <div className="text-sm text-slate-600">
-            {historyIndex > 0 && (
-              <span>{historyIndex} úprav provedeno</span>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors font-medium"
-            >
-              <X className="w-4 h-4" />
-              Zrušit
-            </button>
-            <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium shadow-lg"
-            >
-              <Check className="w-4 h-4" />
-              Použít úpravy
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[#888] font-mono">{canvasWidth} x {canvasHeight}px</span>
+          <button onClick={handleExportPng} className="p-1.5 text-[#999] hover:text-white hover:bg-[#444] rounded transition-colors" title="Export PNG">
+            <Download className="w-4 h-4" />
+          </button>
+          <div className="w-px h-5 bg-[#444] mx-1" />
+          <button onClick={onCancel} className="flex items-center gap-1 px-3 py-1 text-[#999] hover:text-white border border-[#555] rounded text-xs font-bold transition-colors">
+            <X className="w-3.5 h-3.5" /> Zrusit
+          </button>
+          <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1 bg-[#0078d4] hover:bg-[#006abc] text-white rounded text-xs font-bold transition-colors shadow">
+            <Check className="w-3.5 h-3.5" /> Pouzit
+          </button>
         </div>
       </div>
+
+      {/* Main Area */}
+      <div className="flex-1 flex overflow-hidden">
+        <EditorToolbar activeTool={tool} onToolChange={setTool} />
+
+        {/* Canvas Area */}
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-hidden bg-[#1a1a1a] flex items-center justify-center"
+          style={{ cursor: cursorStyle }}
+        >
+          <canvas
+            ref={displayCanvasRef}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{
+              transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+              transformOrigin: 'center center',
+              imageRendering: zoom > 2 ? 'pixelated' : 'auto',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
+            }}
+            className="transition-none"
+          />
+        </div>
+
+        {/* Right Side */}
+        <div className="flex flex-col w-64 shrink-0">
+          <EditorProperties
+            tool={tool}
+            brush={brush}
+            textSettings={textSettings}
+            shapeSettings={shapeSettings}
+            onBrushChange={(partial) => setBrush(prev => ({ ...prev, ...partial }))}
+            onTextChange={(partial) => setTextSettings(prev => ({ ...prev, ...partial }))}
+            onShapeChange={(partial) => setShapeSettings(prev => ({ ...prev, ...partial }))}
+          />
+          <EditorLayers
+            layers={layers}
+            activeLayerId={activeLayerId}
+            onSelectLayer={setActiveLayerId}
+            onToggleVisibility={(id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l))}
+            onToggleLock={(id) => setLayers(prev => prev.map(l => l.id === id ? { ...l, locked: !l.locked } : l))}
+            onOpacityChange={(id, opacity) => setLayers(prev => prev.map(l => l.id === id ? { ...l, opacity } : l))}
+            onBlendModeChange={(id, mode) => setLayers(prev => prev.map(l => l.id === id ? { ...l, blendMode: mode } : l))}
+            onAddLayer={handleAddLayer}
+            onDeleteLayer={handleDeleteLayer}
+            onDuplicateLayer={handleDuplicateLayer}
+            onMoveLayer={handleMoveLayer}
+            onMergeDown={handleMergeDown}
+          />
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="h-6 bg-[#2d2d2d] border-t border-[#444] flex items-center justify-between px-3 shrink-0">
+        <div className="flex items-center gap-4 text-[10px] text-[#888]">
+          <span>Nastroj: {tool}</span>
+          <span>Vrstva: {layers.find(l => l.id === activeLayerId)?.name || '-'}</span>
+          <span>Historie: {historyIndex + 1}/{history.length}</span>
+        </div>
+        <div className="text-[10px] text-[#888]">
+          Ctrl+Z = Zpet | Ctrl+Y = Vpred | Kolecko = Zoom
+        </div>
+      </div>
+
+      {showFilters && (
+        <EditorFilters
+          onApplyFilter={handleApplyFilter}
+          onApplyAdjustments={handleApplyAdjustments}
+          onClose={() => setShowFilters(false)}
+        />
+      )}
     </div>
   );
 }
