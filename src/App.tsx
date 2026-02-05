@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import { Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap, AlertCircle, CheckCircle, Paintbrush, Grid3x3, Play } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 
 // Komponenty
 import ImageUpload from './components/ImageUpload';
 import MultiImageUpload from './components/MultiImageUpload';
 import InstructionsChat from './components/InstructionsChat';
-import ImagePreviewGallery from './components/ImagePreviewGallery';
+import { ImagePreviewGallery } from './components/ImagePreviewGallery';
 import ThreeViewer from './components/ThreeViewer';
 import GLBViewer from './components/GLBViewer';
 import EnhancedGLBViewer from './components/EnhancedGLBViewer';
@@ -17,7 +17,10 @@ import ProgressBar from './components/ProgressBar';
 import ImageEditor from './components/ImageEditor';
 import { TextTo3DGenerator } from './components/TextTo3DGenerator';
 import { RiggingControl } from './components/RiggingControl';
-import { HelmetTools } from './components/HelmetTools'; // [NOVÉ] Import nástrojů pro helmy
+import { RetextureControl } from './components/RetextureControl';
+import { RemeshControl } from './components/RemeshControl';
+import { AnimationControl } from './components/AnimationControl';
+import { HelmetTools } from './components/HelmetTools';
 
 // Služby
 import { generateMeshFromDepth } from './services/meshGenerator';
@@ -67,6 +70,7 @@ function App() {
   const [editingFile, setEditingFile] = useState<File | null>(null);
   const [useEnhancedViewer, setUseEnhancedViewer] = useState(true);
   const [activeTab, setActiveTab] = useState<'upload' | 'viewer'>('upload');
+  const [rigTaskId, setRigTaskId] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -161,8 +165,9 @@ function App() {
     });
   }, []);
 
-  const handleRiggingComplete = useCallback((url: string) => {
+  const handleRiggingComplete = useCallback((url: string, taskId?: string) => {
     setAiModelUrl(url);
+    if (taskId) setRigTaskId(taskId);
     toast.success('Rigging dokončen!', {
       style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
       iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
@@ -635,14 +640,38 @@ function App() {
                   ← Zpět do Studia
                 </button>
                 
-                {/* AI Rigging Controls (jen pro GLB/AI) */}
                 {aiModelUrl && (
-                    <div className="w-72 bg-brand-panel/90 backdrop-blur-md border border-brand-light/10 rounded-xl p-5 shadow-2xl">
-                        <div className="flex items-center gap-2 mb-3 text-brand-accent font-bold text-xs uppercase tracking-wider">
-                           <Bone className="w-4 h-4" /> Animace & Rigging
-                        </div>
-                        <RiggingControl modelUrl={aiModelUrl} onRigged={handleRiggingComplete} />
+                  <div className="w-72 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin">
+                    <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+                      <div className="flex items-center gap-2 mb-3 text-brand-accent font-bold text-xs uppercase tracking-wider">
+                        <Bone className="w-4 h-4" /> Rigging
+                      </div>
+                      <RiggingControl modelUrl={aiModelUrl} onRigged={handleRiggingComplete} />
                     </div>
+
+                    {rigTaskId && (
+                      <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+                        <div className="flex items-center gap-2 mb-3 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                          <Play className="w-4 h-4" /> Animace
+                        </div>
+                        <AnimationControl rigTaskId={rigTaskId} onAnimated={(url) => setAiModelUrl(url)} />
+                      </div>
+                    )}
+
+                    <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+                      <div className="flex items-center gap-2 mb-3 text-orange-400 font-bold text-xs uppercase tracking-wider">
+                        <Paintbrush className="w-4 h-4" /> AI Retexture
+                      </div>
+                      <RetextureControl modelUrl={aiModelUrl} onRetextured={(url) => setAiModelUrl(url)} />
+                    </div>
+
+                    <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-2xl">
+                      <div className="flex items-center gap-2 mb-3 text-cyan-400 font-bold text-xs uppercase tracking-wider">
+                        <Grid3x3 className="w-4 h-4" /> Remesh
+                      </div>
+                      <RemeshControl modelUrl={aiModelUrl} onRemeshed={(url) => setAiModelUrl(url)} />
+                    </div>
+                  </div>
                 )}
 
                 {/* [NOVÉ] HELMET & PRINT TOOLS (Jen pro Mesh/STL) */}

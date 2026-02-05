@@ -3,7 +3,7 @@ import { meshyService } from '../services/meshyService';
 import { Bone, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export const RiggingControl = ({ modelUrl, onRigged }: { modelUrl: string, onRigged: (url: string) => void }) => {
+export const RiggingControl = ({ modelUrl, onRigged }: { modelUrl: string, onRigged: (url: string, rigTaskId?: string) => void }) => {
   const [loading, setLoading] = useState(false);
   const [isRigged, setIsRigged] = useState(false);
 
@@ -23,7 +23,7 @@ export const RiggingControl = ({ modelUrl, onRigged }: { modelUrl: string, onRig
             setLoading(false);
             setIsRigged(true);
             toast.success('Kostra úspěšně přidána!', { id: 'rigging' });
-            onRigged(task.model_urls.glb);
+            onRigged(task.model_urls.glb, taskId);
           } else if (task.status === 'FAILED') {
             clearInterval(interval);
             setLoading(false);

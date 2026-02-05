@@ -1,74 +1,98 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const MESHY_API_KEY = Deno.env.get('MESHY_API_KEY')
-const BASE_URL = 'https://api.meshy.ai'
+const MESHY_API_KEY = Deno.env.get('MESHY_API_KEY');
+const BASE_URL = 'https://api.meshy.ai';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+};
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
   }
 
   try {
-    const { action, payload } = await req.json()
+    const { action, payload } = await req.json();
 
     if (!MESHY_API_KEY) {
-      throw new Error('Missing MESHY_API_KEY')
+      throw new Error('Missing MESHY_API_KEY');
     }
 
-    let endpoint = ''
-    let method = 'POST'
-    let body = JSON.stringify(payload)
-    const headers = {
+    let endpoint = '';
+    let method = 'POST';
+    let body: string | undefined = JSON.stringify(payload);
+    const headers: Record<string, string> = {
       'Authorization': `Bearer ${MESHY_API_KEY}`,
       'Content-Type': 'application/json',
-    }
+    };
 
-    // Router pro různé Meshy funkce
     switch (action) {
       case 'text-to-3d':
-        endpoint = '/openapi/v2/text-to-3d'
-        break
+        endpoint = '/openapi/v2/text-to-3d';
+        break;
       case 'image-to-3d':
-        endpoint = '/openapi/v1/image-to-3d'
-        break
+        endpoint = '/openapi/v1/image-to-3d';
+        break;
       case 'text-to-texture':
-        endpoint = '/openapi/v1/text-to-texture'
-        break
+        endpoint = '/openapi/v1/text-to-texture';
+        break;
+      case 'retexture':
+        endpoint = '/openapi/v1/retexture';
+        break;
+      case 'remesh':
+        endpoint = '/openapi/v1/remesh';
+        break;
       case 'rigging':
-        endpoint = '/openapi/v1/rigging'
-        break
-      case 'get-task':
-        endpoint = `/${payload.taskId}` // Meshy vrací plnou URL nebo ID, zde předpokládáme ID
-        if (!payload.taskId.includes('/')) {
-             // Pokud je to jen ID, musíme zjistit typ tasku, ale Meshy API má specifické gety. 
-             // Zjednodušení: Klient pošle celou cestu endpointu v payload.endpoint, pokud jde o GET
-             if(payload.endpoint) endpoint = payload.endpoint;
+        endpoint = '/openapi/v1/rigging';
+        break;
+      case 'animation':
+        endpoint = '/openapi/v1/animations';
+        break;
+      case 'list-animations': {
+        endpoint = '/openapi/v1/animations/library';
+        method = 'GET';
+        body = undefined;
+        break;
+      }
+      case 'get-task': {
+        if (payload.endpoint) {
+          endpoint = payload.endpoint;
+        } else {
+          throw new Error('Missing endpoint for get-task');
         }
-        method = 'GET'
-        body = undefined
-        break
+        method = 'GET';
+        body = undefined;
+        break;
+      }
       default:
-        throw new Error(`Unknown action: ${action}`)
+        throw new Error(`Unknown action: ${action}`);
     }
 
-    // Pokud je endpoint definován relativně a nezačíná http, přidáme base
-    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`
+    const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
 
-    const response = await fetch(url, { method, headers, body })
-    const data = await response.json()
+    const response = await fetch(url, { method, headers, body });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return new Response(JSON.stringify({ error: data.message || 'Meshy API error', details: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: response.status,
+      });
+    }
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
-    })
+    });
   }
-})
+});
