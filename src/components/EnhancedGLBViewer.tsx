@@ -120,10 +120,10 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
     gridRef.current = gridHelper;
 
     const loader = new GLTFLoader();
+    let disposed = false;
 
     const loadingTimeout = setTimeout(() => {
-      if (isLoading) {
-        console.error('Model loading timeout');
+      if (!disposed) {
         setError('Model loading timed out. Please try generating the model again.');
         setIsLoading(false);
       }
@@ -133,6 +133,7 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
       modelUrl,
       (gltf) => {
         clearTimeout(loadingTimeout);
+        if (disposed) return;
         const model = gltf.scene;
         modelRef.current = model;
 
@@ -148,12 +149,12 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
         const size = box.getSize(new THREE.Vector3());
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 3 / maxDim;
-        model.scale.multiplyScalar(scale);
+        const modelScale = 3 / maxDim;
+        model.scale.multiplyScalar(modelScale);
 
-        model.position.x = -center.x * scale;
-        model.position.y = -center.y * scale;
-        model.position.z = -center.z * scale;
+        model.position.x = -center.x * modelScale;
+        model.position.y = -center.y * modelScale;
+        model.position.z = -center.z * modelScale;
 
         scene.add(model);
 
@@ -164,9 +165,10 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
         setIsLoading(false);
       },
       undefined,
-      (error) => {
+      (loadError) => {
         clearTimeout(loadingTimeout);
-        console.error('Error loading GLB:', error);
+        if (disposed) return;
+        console.error('Error loading GLB:', loadError);
         setError('Failed to load 3D model. The model URL may be invalid or the file may be corrupted.');
         setIsLoading(false);
       }
@@ -189,6 +191,8 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
     window.addEventListener('resize', handleResize);
 
     return () => {
+      disposed = true;
+      clearTimeout(loadingTimeout);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
@@ -199,7 +203,7 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
       renderer.dispose();
       controls.dispose();
     };
-  }, [modelUrl, onSceneReady, showGrid]);
+  }, [modelUrl, onSceneReady]);
 
   useEffect(() => {
     if (!gridRef.current) return;
@@ -236,60 +240,60 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
     }
   }, [showBoundingBox]);
 
-  if (isLoading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-900">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-sm">Loading 3D model...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-900">
-        <div className="text-center max-w-md p-8 bg-slate-800 rounded-lg shadow-xl">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-4xl">⚠️</span>
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Chyba při načítání modelu</h3>
-          <p className="text-red-400 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
-          >
-            Obnovit stránku
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full h-full flex">
-      <div className="flex-1 relative" ref={containerRef} />
+      <div className="flex-1 relative">
+        <div className="absolute inset-0" ref={containerRef} />
 
-      <div className="w-80 bg-slate-900 border-l border-slate-700 overflow-y-auto p-4 space-y-4">
-        <MeshStatistics scene={sceneRef.current || undefined} />
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 z-10">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-white text-sm">Loading 3D model...</p>
+            </div>
+          </div>
+        )}
 
-        <ViewportControls
-          showGrid={showGrid}
-          showWireframe={showWireframe}
-          showLights={showLights}
-          showBoundingBox={showBoundingBox}
-          onToggleGrid={() => setShowGrid(!showGrid)}
-          onToggleWireframe={() => setShowWireframe(!showWireframe)}
-          onToggleLights={() => setShowLights(!showLights)}
-          onToggleBoundingBox={() => setShowBoundingBox(!showBoundingBox)}
-          onResetCamera={resetCamera}
-        />
-
-        <CameraPresets onPresetSelect={setCameraPreset} />
-
-        <MaterialEditor onApply={applyMaterial} />
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 z-10">
+            <div className="text-center max-w-md p-8 bg-slate-800 rounded-lg shadow-xl">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl text-red-400">!</span>
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Chyba pri nacitani modelu</h3>
+              <p className="text-red-400 mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
+              >
+                Obnovit stranku
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {!isLoading && !error && (
+        <div className="w-80 bg-slate-900 border-l border-slate-700 overflow-y-auto p-4 space-y-4">
+          <MeshStatistics scene={sceneRef.current || undefined} />
+
+          <ViewportControls
+            showGrid={showGrid}
+            showWireframe={showWireframe}
+            showLights={showLights}
+            showBoundingBox={showBoundingBox}
+            onToggleGrid={() => setShowGrid(!showGrid)}
+            onToggleWireframe={() => setShowWireframe(!showWireframe)}
+            onToggleLights={() => setShowLights(!showLights)}
+            onToggleBoundingBox={() => setShowBoundingBox(!showBoundingBox)}
+            onResetCamera={resetCamera}
+          />
+
+          <CameraPresets onPresetSelect={setCameraPreset} />
+
+          <MaterialEditor onApply={applyMaterial} />
+        </div>
+      )}
     </div>
   );
 }
