@@ -1,9 +1,7 @@
 import { applyInstructionsToImage } from './instructionsProcessor';
 import { generateImageHash, getCachedModel, saveCachedModel } from './modelCache';
 import { globalDeduplicator } from './requestManager';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/trellis-image-to-3d`;
+import { meshyService } from './meshyService';
 
 const lastRequestTimestamp = { value: 0 };
 const MIN_REQUEST_INTERVAL = 30000;
@@ -63,6 +61,12 @@ async function fileToBase64(file: File): Promise<string> {
 
 export type QualityPreset = 'fast' | 'quality' | 'ultra';
 
+const QUALITY_TO_MODEL: Record<QualityPreset, string> = {
+  fast: 'meshy-4',
+  quality: 'meshy-5',
+  ultra: 'latest',
+};
+
 export async function generateModelFromImage(
   _imageUrl: string,
   file: File,
@@ -74,7 +78,6 @@ export async function generateModelFromImage(
   if (signal?.aborted) {
     throw new Error('Request was cancelled before starting');
   }
-  console.log('Processing image(s) with instructions and multi-view...');
 
   const allFiles = [file, ...(additionalFiles || [])];
   const totalSize = allFiles.reduce((sum, f) => sum + f.size, 0);
@@ -90,18 +93,14 @@ export async function generateModelFromImage(
   }
 
   const imageHash = await generateImageHash(file);
-  console.log('Image hash:', imageHash.substring(0, 16) + '...');
 
   const cachedUrl = await getCachedModel(imageHash, instructions);
   if (cachedUrl) {
-    console.log('✅ Using cached model!');
     return {
       model_url: cachedUrl,
       status: 'SUCCEEDED',
     };
   }
-
-  console.log('Cache miss - generating new model...');
 
   const requestKey = `model-${imageHash}-${instructions || 'none'}-${qualityPreset || 'quality'}-${allFiles.length}`;
 
@@ -110,148 +109,83 @@ export async function generateModelFromImage(
     async () => {
       checkRateLimit();
 
-  let filesToProcess = [file];
-  if (additionalFiles && additionalFiles.length > 0) {
-    filesToProcess = [file, ...additionalFiles];
-    console.log(`Processing ${filesToProcess.length} images for multi-view generation...`);
-  }
-
-  if (instructions && instructions.trim()) {
-    console.log('Applying instructions preprocessing to all images...');
-    const processedFiles = await Promise.all(
-      filesToProcess.map(f => applyInstructionsToImage(f, instructions))
-    );
-    filesToProcess = processedFiles.map(p => p.file);
-  }
-
-  console.log('Converting images to base64...');
-  const dataUrls = await Promise.all(
-    filesToProcess.map(f => fileToBase64(f))
-  );
-
-  console.log(`Starting Meshy.ai image-to-3D with ${dataUrls.length} image(s)...`);
-  if (instructions) {
-    console.log('Instructions were preprocessed and applied to all images:', instructions);
-  }
-  if (dataUrls.length > 1) {
-    console.log(`Multi-view generation with ${dataUrls.length} different angles`);
-  }
-
-  const preset = qualityPreset || 'quality';
-  console.log(`🎯 Quality preset: ${preset}`);
-
-  if (signal?.aborted) {
-    throw new Error('Request was cancelled before API call');
-  }
-
-  const response = await fetch(EDGE_FUNCTION_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      images: dataUrls,
-      instructions: instructions || undefined,
-      qualityPreset: preset,
-    }),
-    signal,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Edge Function error:', response.status, errorText);
-    throw new Error(`Failed to start generation (${response.status}): ${errorText}`);
-  }
-
-  const prediction = await response.json();
-  const taskId = prediction.id;
-
-  if (!taskId) {
-    throw new Error('No task ID received');
-  }
-
-  console.log('Polling for result with task ID:', taskId);
-
-  const maxAttempts = 90;
-  let attempts = 0;
-  let pollDelay = 2000;
-
-  while (attempts < maxAttempts) {
-    if (signal?.aborted) {
-      throw new Error('Request was cancelled during polling');
-    }
-
-    await new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(resolve, pollDelay);
-      signal?.addEventListener('abort', () => {
-        clearTimeout(timeoutId);
-        reject(new Error('Request was cancelled'));
-      });
-    });
-
-    pollDelay = Math.min(pollDelay * 1.15, 10000);
-    attempts++;
-
-    console.log(`⏳ Polling attempt ${attempts}/${maxAttempts}...`);
-
-    const statusResponse = await fetch(EDGE_FUNCTION_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        taskId,
-      }),
-      signal,
-    });
-
-    if (!statusResponse.ok) {
-      console.error('Failed to get task status');
-      continue;
-    }
-
-    const statusData = await statusResponse.json();
-    console.log(`📊 Status: ${statusData.status}`, statusData);
-
-    if (statusData.progress) {
-      console.log(`⚙️ Progress: ${statusData.progress}%`);
-    }
-
-    if (statusData.error) {
-      console.error('❌ Error from server:', statusData.error);
-    }
-
-    if (statusData.status === 'SUCCEEDED') {
-      const glbUrl = statusData.output;
-      console.log('✅ Generation succeeded! GLB URL:', glbUrl);
-
-      if (!glbUrl || typeof glbUrl !== 'string') {
-        console.error('❌ Could not find valid GLB URL in output:', statusData);
-        throw new Error('Invalid output from Meshy.ai - no model file URL found');
+      let filesToProcess = [file];
+      if (additionalFiles && additionalFiles.length > 0) {
+        filesToProcess = [file, ...additionalFiles];
       }
 
-      console.log('Model ready at:', glbUrl);
+      if (instructions && instructions.trim()) {
+        const processedFiles = await Promise.all(
+          filesToProcess.map(f => applyInstructionsToImage(f, instructions))
+        );
+        filesToProcess = processedFiles.map(p => p.file);
+      }
 
-      await saveCachedModel(imageHash, glbUrl, instructions);
+      const dataUrls = await Promise.all(
+        filesToProcess.map(f => fileToBase64(f))
+      );
 
-      return {
-        model_url: glbUrl,
-        status: 'SUCCEEDED',
-      };
-    }
+      const preset = qualityPreset || 'quality';
+      const aiModel = QUALITY_TO_MODEL[preset];
 
-    if (statusData.status === 'FAILED') {
-      const errorMsg = statusData.error || 'Model generation failed';
-      console.error('Generation failed:', errorMsg);
-      throw new Error(errorMsg);
-    }
+      if (signal?.aborted) {
+        throw new Error('Request was cancelled before API call');
+      }
 
-    if (statusData.status === 'CANCELLED' || statusData.status === 'CANCELED') {
-      throw new Error('Model generation was canceled');
-    }
-  }
+      const taskId = await meshyService.createImageTo3D(dataUrls[0], {
+        enable_pbr: true,
+        ai_model: aiModel,
+        ...(instructions && { texture_prompt: instructions.substring(0, 600) }),
+      });
 
-  throw new Error('Timeout waiting for model generation. Please try again.');
+      const maxAttempts = 90;
+      let attempts = 0;
+      let pollDelay = 2000;
+
+      while (attempts < maxAttempts) {
+        if (signal?.aborted) {
+          throw new Error('Request was cancelled during polling');
+        }
+
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(resolve, pollDelay);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(timeoutId);
+            reject(new Error('Request was cancelled'));
+          });
+        });
+
+        pollDelay = Math.min(pollDelay * 1.15, 10000);
+        attempts++;
+
+        const statusData = await meshyService.getTaskStatus(taskId, 'image-to-3d');
+
+        if (statusData.status === 'SUCCEEDED') {
+          const glbUrl = statusData.model_urls?.glb;
+
+          if (!glbUrl || typeof glbUrl !== 'string') {
+            throw new Error('Invalid output from Meshy.ai - no model file URL found');
+          }
+
+          await saveCachedModel(imageHash, glbUrl, instructions);
+
+          return {
+            model_url: glbUrl,
+            status: 'SUCCEEDED' as const,
+          };
+        }
+
+        if (statusData.status === 'FAILED') {
+          const errorMsg = statusData.error || 'Model generation failed';
+          throw new Error(errorMsg);
+        }
+
+        if (statusData.status === 'CANCELLED' || statusData.status === 'CANCELED') {
+          throw new Error('Model generation was canceled');
+        }
+      }
+
+      throw new Error('Timeout waiting for model generation. Please try again.');
     },
     600000
   );

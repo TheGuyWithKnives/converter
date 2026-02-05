@@ -5,12 +5,12 @@
 ### Jak to funguje:
 1. **Frontend sbírá více obrázků** z různých úhlů
 2. **Všechny obrázky se posílají jako pole** - každý obrázek samostatně
-3. **Trellis AI dostává multi-view data** - nativní podpora pro více úhlů
+3. **Meshy AI dostává multi-view data** - nativní podpora pro více úhlů
 4. **Výsledek je JEDEN komplexní 3D model** - AI spojí všechny úhly do jednoho objektu
 
 ### Technické detaily:
 - **Soubor:** `src/services/triposrService.ts`
-- **API:** Trellis podporuje pole obrázků v `images` parametru
+- **API:** Meshy podporuje pole obrázků v `images` parametru
 - **Formát:** Každý obrázek se převede na base64 a pošle samostatně
 - **Výhoda:** Skutečné multi-view zpracování, ne kompozitní obrázek
 
@@ -22,7 +22,7 @@
 ```
 
 ### Důležité poznámky:
-- ✅ Trellis nativně podporuje multi-view
+- ✅ Meshy nativně podporuje multi-view
 - ✅ Vytvoří se pouze JEDEN 3D model (ne více objektů)
 - ✅ Lepší výsledky než z kompozitního obrázku
 - 🎯 Doporučeno: 3-6 obrázků z různých úhlů (přední, zadní, boční strany)
@@ -127,7 +127,7 @@ cached_models {
    ↓
 6. Pokud instrukce → aplikuje filtry na obrázek
    ↓
-7. Pošle upravený obrázek do Trellis AI
+7. Pošle upravený obrázek do Meshy AI
    ↓
 8. AI generuje 3D model (30-60 sekund)
    ↓
@@ -199,7 +199,7 @@ Pro otestování funkcí:
 
 ## ⚠️ Důležité poznámky
 
-1. **Trellis multi-view support** - Model nativně podporuje pole obrázků a vytvoří JEDEN 3D model
+1. **Meshy multi-view support** - Model nativně podporuje pole obrázků a vytvoří JEDEN 3D model
 2. **Instrukce mění vstupní obrázky** - aplikují se na všechny obrázky před odesláním
 3. **Cache je globální** - všichni uživatelé sdílejí cache (úspora nákladů)
 4. **SHA-256 hash je spolehlivý** - kolize je prakticky nemožná
