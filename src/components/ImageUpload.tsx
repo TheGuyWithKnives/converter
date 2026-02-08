@@ -24,28 +24,27 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUpload, disabled }) =>
     return null;
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      
-      // Validace
-      const validationError = validateFile(file);
+      const originalFile = acceptedFiles[0];
+
+      const validationError = validateFile(originalFile);
       if (validationError) {
         setError(validationError);
         return;
       }
       setError(null);
-      setFileName(file.name);
+      setFileName(originalFile.name);
 
-      // Detekce typu souboru
-      const _isStl = file.name.toLowerCase().endsWith('.stl');
+      const _isStl = originalFile.name.toLowerCase().endsWith('.stl');
       setIsStl(_isStl);
 
-      // Vytvoření náhledu
+      const buffer = await originalFile.arrayBuffer();
+      const file = new File([buffer], originalFile.name, { type: originalFile.type });
+
       const objectUrl = URL.createObjectURL(file);
       setPreview(objectUrl);
-      
-      // Předání nahoru
+
       onImageUpload(file, objectUrl);
     }
   }, [onImageUpload]);

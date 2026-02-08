@@ -10,15 +10,20 @@ interface MultiImageUploadProps {
 const MultiImageUpload: React.FC<MultiImageUploadProps> = ({ onImagesUpload, disabled }) => {
   const [previews, setPreviews] = useState<{ file: File; url: string }[]>([]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newPreviews = acceptedFiles.map(file => ({
-      file,
-      url: URL.createObjectURL(file)
-    }));
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const newPreviews = await Promise.all(
+      acceptedFiles.map(async (file) => {
+        const buffer = await file.arrayBuffer();
+        const memoryFile = new File([buffer], file.name, { type: file.type });
+        return {
+          file: memoryFile,
+          url: URL.createObjectURL(memoryFile),
+        };
+      })
+    );
 
     setPreviews(prev => {
       const updated = [...prev, ...newPreviews];
-      // Předáme rodiči aktualizovaný seznam
       onImagesUpload(updated.map(p => p.file), updated.map(p => p.url));
       return updated;
     });
