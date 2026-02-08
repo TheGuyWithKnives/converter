@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=League+Spartan:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,29 +7,48 @@
 @layer base {
   body {
     @apply bg-brand-dark text-brand-light font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-spartan font-bold tracking-wide;
   }
+
+  * {
+    @apply transition-colors duration-150;
+  }
+
+  input, textarea, select, button {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.15s ease;
+  }
 }
 
-/* Scrollbar v Genzeo barvách */
+@layer utilities {
+  .glass {
+    @apply backdrop-blur-md bg-brand-panel/90 border border-brand-border/50;
+  }
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0C10; 
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0F172A; 
-  border-radius: 4px;
-  border: 1px solid #1E293B;
+  background: #1E293B;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF003C; 
+  background: #334155;
+}
+
+::selection {
+  background: rgba(255, 0, 60, 0.3);
+  color: #F4F4F4;
 }

@@ -70,76 +70,76 @@ export default function MeshStatistics({ modelUrl, mesh, scene }: MeshStatistics
 
   if (!stats) {
     return (
-      <div className="bg-slate-800 rounded-lg p-4">
+      <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
         <div className="flex items-center gap-2 mb-3">
-          <Box className="w-5 h-5 text-green-400" />
-          <h3 className="text-white font-semibold">Mesh Statistics</h3>
+          <Box className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-brand-light font-bold text-sm">Mesh Statistics</h3>
         </div>
-        <p className="text-slate-400 text-sm">No model loaded</p>
+        <p className="text-brand-muted text-sm">No model loaded</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800 rounded-lg p-4">
+    <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
       <div className="flex items-center gap-2 mb-4">
-        <Box className="w-5 h-5 text-green-400" />
-        <h3 className="text-white font-semibold">Mesh Statistics</h3>
+        <Box className="w-4 h-4 text-emerald-400" />
+        <h3 className="text-brand-light font-bold text-sm">Mesh Statistics</h3>
       </div>
 
       <div className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-300">
+          <div className="flex items-center gap-2 text-brand-muted">
             <Triangle className="w-4 h-4 text-blue-400" />
             <span>Triangles</span>
           </div>
-          <span className="text-white font-mono">{stats.triangles.toLocaleString()}</span>
+          <span className="text-brand-light font-mono">{stats.triangles.toLocaleString()}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-300">
-            <Grid className="w-4 h-4 text-green-400" />
+          <div className="flex items-center gap-2 text-brand-muted">
+            <Grid className="w-4 h-4 text-emerald-400" />
             <span>Vertices</span>
           </div>
-          <span className="text-white font-mono">{stats.vertices.toLocaleString()}</span>
+          <span className="text-brand-light font-mono">{stats.vertices.toLocaleString()}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-300">
-            <Layers className="w-4 h-4 text-purple-400" />
+          <div className="flex items-center gap-2 text-brand-muted">
+            <Layers className="w-4 h-4 text-cyan-400" />
             <span>Meshes</span>
           </div>
-          <span className="text-white font-mono">{stats.meshes}</span>
+          <span className="text-brand-light font-mono">{stats.meshes}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-300">
+          <div className="flex items-center gap-2 text-brand-muted">
             <Box className="w-4 h-4 text-orange-400" />
             <span>Materials</span>
           </div>
-          <span className="text-white font-mono">{stats.materials}</span>
+          <span className="text-brand-light font-mono">{stats.materials}</span>
         </div>
 
-        <div className="pt-3 border-t border-slate-700">
-          <div className="text-slate-300 mb-2">Dimensions</div>
+        <div className="pt-3 border-t border-brand-border">
+          <div className="text-brand-muted mb-2 text-xs uppercase tracking-wider font-bold">Dimensions</div>
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-700 rounded px-2 py-1">
-              <div className="text-xs text-slate-400">X</div>
-              <div className="text-white font-mono text-sm">{stats.dimensions.x}</div>
+            <div className="bg-brand-dark rounded-lg px-2 py-1.5 border border-brand-border">
+              <div className="text-[10px] text-brand-muted-soft">X</div>
+              <div className="text-brand-light font-mono text-sm">{stats.dimensions.x}</div>
             </div>
-            <div className="bg-slate-700 rounded px-2 py-1">
-              <div className="text-xs text-slate-400">Y</div>
-              <div className="text-white font-mono text-sm">{stats.dimensions.y}</div>
+            <div className="bg-brand-dark rounded-lg px-2 py-1.5 border border-brand-border">
+              <div className="text-[10px] text-brand-muted-soft">Y</div>
+              <div className="text-brand-light font-mono text-sm">{stats.dimensions.y}</div>
             </div>
-            <div className="bg-slate-700 rounded px-2 py-1">
-              <div className="text-xs text-slate-400">Z</div>
-              <div className="text-white font-mono text-sm">{stats.dimensions.z}</div>
+            <div className="bg-brand-dark rounded-lg px-2 py-1.5 border border-brand-border">
+              <div className="text-[10px] text-brand-muted-soft">Z</div>
+              <div className="text-brand-light font-mono text-sm">{stats.dimensions.z}</div>
             </div>
           </div>
         </div>
 
         <div className="pt-2">
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-brand-muted-soft">
             Quality: {stats.triangles < 10000 ? 'Low' : stats.triangles < 50000 ? 'Medium' : 'High'} poly
           </div>
         </div>

@@ -8,21 +8,46 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0B0C10',    // Hlavní pozadí (Deep Black)
-          panel: '#0F172A',   // Panely (Dark Blue-Grey)
-          accent: '#FF003C',  // Akční barva (Neon Red)
-          light: '#F4F4F4',   // Text (Off-White)
-          muted: '#94A3B8',   // Tlumený text (pro popisky)
+          dark: '#0B0C10',
+          panel: '#0F172A',
+          surface: '#131B2E',
+          border: '#1E293B',
+          accent: '#FF003C',
+          'accent-soft': '#FF003C1A',
+          light: '#F4F4F4',
+          muted: '#94A3B8',
+          'muted-soft': '#64748B',
         }
       },
       fontFamily: {
         spartan: ['"League Spartan"', 'sans-serif'],
-        sans: ['"Arial Nova"', 'Arial', 'sans-serif'],
+        sans: ['"Inter"', '"Arial Nova"', 'Arial', 'sans-serif'],
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(255, 0, 60, 0.3)', // Červená záře
+        'glow': '0 0 20px rgba(255, 0, 60, 0.3)',
         'glow-strong': '0 0 30px rgba(255, 0, 60, 0.5)',
-      }
+        'panel': '0 4px 24px rgba(0, 0, 0, 0.4)',
+        'elevated': '0 8px 32px rgba(0, 0, 0, 0.5)',
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.4s ease-out',
+        'slide-up': 'slideUp 0.4s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideDown: {
+          '0%': { opacity: '0', transform: 'translateY(-8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
     },
   },
   plugins: [],

@@ -23,68 +23,47 @@ export default function ViewportControls({
   onToggleBoundingBox,
   onResetCamera,
 }: ViewportControlsProps) {
+  const toggleClass = (active: boolean) =>
+    `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
+      active
+        ? 'bg-brand-accent/15 text-brand-accent border border-brand-accent/30'
+        : 'bg-brand-dark text-brand-muted hover:text-brand-light border border-brand-border hover:border-brand-muted-soft'
+    }`;
+
   return (
-    <div className="bg-slate-800 rounded-lg p-4">
+    <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
       <div className="flex items-center gap-2 mb-4">
-        <Eye className="w-5 h-5 text-cyan-400" />
-        <h3 className="text-white font-semibold">Viewport Controls</h3>
+        <Eye className="w-4 h-4 text-cyan-400" />
+        <h3 className="text-brand-light font-bold text-sm">Viewport</h3>
       </div>
 
       <div className="space-y-2">
-        <button
-          onClick={onToggleGrid}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
-            showGrid
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          }`}
-        >
+        <button onClick={onToggleGrid} className={toggleClass(showGrid)}>
           <Grid3x3 className="w-4 h-4" />
-          <span className="text-sm">Show Grid</span>
+          Grid
         </button>
 
-        <button
-          onClick={onToggleWireframe}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
-            showWireframe
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          }`}
-        >
+        <button onClick={onToggleWireframe} className={toggleClass(showWireframe)}>
           <Square className="w-4 h-4" />
-          <span className="text-sm">Wireframe Mode</span>
+          Wireframe
         </button>
 
-        <button
-          onClick={onToggleLights}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
-            showLights
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          }`}
-        >
+        <button onClick={onToggleLights} className={toggleClass(showLights)}>
           <Lightbulb className="w-4 h-4" />
-          <span className="text-sm">Show Lights</span>
+          Lights
         </button>
 
-        <button
-          onClick={onToggleBoundingBox}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
-            showBoundingBox
-              ? 'bg-blue-600 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-          }`}
-        >
+        <button onClick={onToggleBoundingBox} className={toggleClass(showBoundingBox)}>
           <Square className="w-4 h-4" />
-          <span className="text-sm">Bounding Box</span>
+          Bounding Box
         </button>
 
         <button
           onClick={onResetCamera}
-          className="w-full flex items-center gap-3 px-3 py-2 bg-slate-700 text-slate-300 hover:bg-slate-600 rounded transition-colors mt-4"
+          className="w-full flex items-center gap-3 px-3 py-2 bg-brand-dark text-brand-muted hover:text-brand-light border border-brand-border hover:border-brand-accent/50 rounded-lg text-sm transition-all mt-3"
         >
           <Maximize className="w-4 h-4" />
-          <span className="text-sm">Reset Camera</span>
+          Reset Camera
         </button>
       </div>
     </div>

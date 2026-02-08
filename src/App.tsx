@@ -244,7 +244,9 @@ function App() {
             background: '#0F172A',
             color: '#F4F4F4',
             border: '1px solid #1E293B',
-            fontFamily: '"Arial Nova", sans-serif',
+            fontFamily: '"Inter", "Arial Nova", sans-serif',
+            borderRadius: '12px',
+            fontSize: '13px',
           },
         }}
       />
@@ -340,7 +342,7 @@ function App() {
 
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-brand-light/5 px-4 py-3 space-y-3 bg-brand-panel">
+          <div className="md:hidden border-t border-brand-light/5 px-4 py-3 space-y-3 bg-brand-panel animate-slide-down">
             <div className="flex gap-2">
               <button
                 onClick={() => { setGenerationMode('image'); setMobileMenuOpen(false); }}
@@ -389,8 +391,8 @@ function App() {
 
         {/* UPLOAD TAB */}
         {activeTab === 'upload' && (
-          <div className="h-full overflow-y-auto custom-scrollbar">
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
 
               {/* Mobile: Floating preview button */}
               {hasModel && (
@@ -595,7 +597,7 @@ function App() {
 
         {/* VIEWER TAB */}
         {activeTab === 'viewer' && hasModel && (
-          <div className="h-full relative bg-[#050508]">
+          <div className="h-full relative bg-[#050508] animate-fade-in">
             {/* Overlay UI */}
             <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 flex flex-col gap-3 sm:gap-4 max-w-[calc(100vw-2rem)] sm:max-w-none">
               <button

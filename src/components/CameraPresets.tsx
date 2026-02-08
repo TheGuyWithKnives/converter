@@ -23,10 +23,10 @@ export default function CameraPresets({ onPresetSelect }: CameraPresetsProps) {
   ];
 
   return (
-    <div className="bg-slate-800 rounded-lg p-4">
+    <div className="bg-brand-surface rounded-xl p-4 border border-brand-border">
       <div className="flex items-center gap-2 mb-4">
-        <Camera className="w-5 h-5 text-purple-400" />
-        <h3 className="text-white font-semibold">Camera Presets</h3>
+        <Camera className="w-4 h-4 text-amber-400" />
+        <h3 className="text-brand-light font-bold text-sm">Camera Presets</h3>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -34,7 +34,7 @@ export default function CameraPresets({ onPresetSelect }: CameraPresetsProps) {
           <button
             key={preset.name}
             onClick={() => onPresetSelect(preset)}
-            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded transition-colors flex items-center justify-center gap-2"
+            className="px-3 py-2 bg-brand-dark hover:bg-brand-border text-brand-muted hover:text-brand-light text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 border border-brand-border hover:border-brand-muted-soft"
           >
             {preset.name === 'Iso' && <Maximize2 className="w-3 h-3" />}
             {preset.name === 'Perspective' && <Eye className="w-3 h-3" />}

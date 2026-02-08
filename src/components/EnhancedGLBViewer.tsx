@@ -263,25 +263,25 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
         <div className="absolute inset-0" ref={containerRef} />
 
         {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 z-10">
+          <div className="absolute inset-0 flex items-center justify-center bg-brand-dark/95 z-10">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-white text-sm">Loading 3D model...</p>
+              <div className="w-12 h-12 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-brand-light text-sm">Nacitam 3D model...</p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 z-10">
-            <div className="text-center max-w-md p-8 bg-slate-800 rounded-lg shadow-xl">
-              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-4xl text-red-400">!</span>
+          <div className="absolute inset-0 flex items-center justify-center bg-brand-dark/95 z-10">
+            <div className="text-center max-w-md p-8 bg-brand-panel rounded-2xl shadow-elevated border border-brand-border">
+              <div className="w-16 h-16 bg-brand-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl text-brand-accent">!</span>
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Chyba pri nacitani modelu</h3>
-              <p className="text-red-400 mb-4">{error}</p>
+              <h3 className="text-xl font-bold text-brand-light mb-2">Chyba pri nacitani modelu</h3>
+              <p className="text-brand-accent/80 mb-4 text-sm">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
+                className="px-6 py-3 bg-brand-accent hover:opacity-90 text-brand-light rounded-xl font-bold transition-all shadow-glow"
               >
                 Obnovit stranku
               </button>
@@ -291,7 +291,7 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
       </div>
 
       {!isLoading && !error && (
-        <div className="w-80 bg-slate-900 border-l border-slate-700 overflow-y-auto p-4 space-y-4">
+        <div className="w-80 bg-brand-panel border-l border-brand-border overflow-y-auto p-4 space-y-4">
           <MeshStatistics scene={sceneRef.current || undefined} />
 
           <ViewportControls

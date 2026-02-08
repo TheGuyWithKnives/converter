@@ -414,27 +414,27 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
   return (
     <div className="relative w-full h-full">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-75 z-10">
+        <div className="absolute inset-0 flex items-center justify-center bg-brand-dark/95 z-10">
           <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white text-sm">Loading 3D model...</p>
+            <div className="w-12 h-12 border-4 border-brand-accent border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-brand-light text-sm">Nacitam 3D model...</p>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900 bg-opacity-90 z-10">
-          <div className="text-center max-w-md p-8 bg-slate-800 rounded-lg shadow-xl">
-            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">⚠️</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-brand-dark/95 z-10">
+          <div className="text-center max-w-md p-8 bg-brand-panel rounded-2xl shadow-elevated border border-brand-border">
+            <div className="w-16 h-16 bg-brand-accent/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl text-brand-accent">!</span>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Chyba při načítání modelu</h3>
-            <p className="text-red-400 mb-4">{error}</p>
+            <h3 className="text-xl font-bold text-brand-light mb-2">Chyba pri nacitani modelu</h3>
+            <p className="text-brand-accent/80 mb-4 text-sm">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-all"
+              className="px-6 py-3 bg-brand-accent hover:opacity-90 text-brand-light rounded-xl font-bold transition-all shadow-glow"
             >
-              Obnovit stránku
+              Obnovit stranku
             </button>
           </div>
         </div>
@@ -457,14 +457,14 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
         </button>
         <button
           onClick={() => setShowExport(!showExport)}
-          className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          className="p-2 bg-brand-panel/90 backdrop-blur-sm hover:bg-brand-surface text-brand-light rounded-lg transition-all border border-brand-border"
           title="Export Model"
         >
           <Download className="w-5 h-5" />
         </button>
         <button
           onClick={() => setShowControls(!showControls)}
-          className="p-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          className="p-2 bg-brand-panel/90 backdrop-blur-sm hover:bg-brand-surface text-brand-light rounded-lg transition-all border border-brand-border"
           title="Lighting Controls"
         >
           <Settings className="w-5 h-5" />
@@ -472,49 +472,40 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
       </div>
 
       {showExport && (
-        <div className="absolute top-16 right-4 z-20 bg-slate-800 rounded-lg p-4 shadow-xl">
-          <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+        <div className="absolute top-16 right-4 z-20 bg-brand-panel rounded-xl p-4 shadow-elevated border border-brand-border">
+          <h3 className="text-brand-light font-bold mb-3 flex items-center gap-2 text-sm">
             <Download className="w-4 h-4" />
             Export Model
           </h3>
           <div className="space-y-2">
             <button
               onClick={() => handleExport('glb')}
-              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors text-sm"
+              className="w-full px-4 py-2 bg-brand-accent hover:opacity-90 text-white rounded-lg transition-all text-sm font-bold shadow-glow"
             >
-              Export as GLB
+              Export GLB
             </button>
-            <button
-              onClick={() => handleExport('obj')}
-              className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition-colors text-sm"
-            >
-              Export as OBJ
-            </button>
-            <button
-              onClick={() => handleExport('stl')}
-              className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors text-sm"
-            >
-              Export as STL
-            </button>
-            <button
-              onClick={() => handleExport('ply')}
-              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded transition-colors text-sm"
-            >
-              Export as PLY
-            </button>
+            {['obj', 'stl', 'ply'].map((fmt) => (
+              <button
+                key={fmt}
+                onClick={() => handleExport(fmt as 'obj' | 'stl' | 'ply')}
+                className="w-full px-4 py-2 bg-brand-dark hover:bg-brand-surface text-brand-muted hover:text-brand-light border border-brand-border rounded-lg transition-all text-sm font-bold uppercase"
+              >
+                Export {fmt.toUpperCase()}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
       {showControls && (
-        <div className="absolute top-16 right-4 z-20 bg-slate-800 rounded-lg p-4 shadow-xl max-w-xs">
-          <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+        <div className="absolute top-16 right-4 z-20 bg-brand-panel rounded-xl p-4 shadow-elevated border border-brand-border max-w-xs">
+          <h3 className="text-brand-light font-bold mb-3 flex items-center gap-2 text-sm">
             <Sun className="w-4 h-4" />
             Lighting Controls
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-white text-sm flex items-center gap-2 mb-1">
+              <label className="text-brand-light text-sm flex items-center gap-2 mb-1">
                 <Lightbulb className="w-3 h-3" />
                 Ambient Light
               </label>
@@ -527,11 +518,11 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, ambientIntensity: parseFloat(e.target.value) })}
                 className="w-full"
               />
-              <span className="text-slate-400 text-xs">{lighting.ambientIntensity.toFixed(1)}</span>
+              <span className="text-brand-muted text-xs">{lighting.ambientIntensity.toFixed(1)}</span>
             </div>
 
             <div>
-              <label className="text-white text-sm flex items-center gap-2 mb-1">
+              <label className="text-brand-light text-sm flex items-center gap-2 mb-1">
                 <Sun className="w-3 h-3" />
                 Key Light
               </label>
@@ -544,11 +535,11 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, keyLightIntensity: parseFloat(e.target.value) })}
                 className="w-full"
               />
-              <span className="text-slate-400 text-xs">{lighting.keyLightIntensity.toFixed(1)}</span>
+              <span className="text-brand-muted text-xs">{lighting.keyLightIntensity.toFixed(1)}</span>
             </div>
 
             <div>
-              <label className="text-white text-sm mb-1 block">Fill Light</label>
+              <label className="text-brand-light text-sm mb-1 block">Fill Light</label>
               <input
                 type="range"
                 min="0"
@@ -558,11 +549,11 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, fillLightIntensity: parseFloat(e.target.value) })}
                 className="w-full"
               />
-              <span className="text-slate-400 text-xs">{lighting.fillLightIntensity.toFixed(1)}</span>
+              <span className="text-brand-muted text-xs">{lighting.fillLightIntensity.toFixed(1)}</span>
             </div>
 
             <div>
-              <label className="text-white text-sm mb-1 block">Rim Light</label>
+              <label className="text-brand-light text-sm mb-1 block">Rim Light</label>
               <input
                 type="range"
                 min="0"
@@ -572,11 +563,11 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, rimLightIntensity: parseFloat(e.target.value) })}
                 className="w-full"
               />
-              <span className="text-slate-400 text-xs">{lighting.rimLightIntensity.toFixed(1)}</span>
+              <span className="text-brand-muted text-xs">{lighting.rimLightIntensity.toFixed(1)}</span>
             </div>
 
             <div>
-              <label className="text-white text-sm flex items-center gap-2 mb-1">
+              <label className="text-brand-light text-sm flex items-center gap-2 mb-1">
                 <Eye className="w-3 h-3" />
                 Exposure
               </label>
@@ -589,7 +580,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, exposure: parseFloat(e.target.value) })}
                 className="w-full"
               />
-              <span className="text-slate-400 text-xs">{lighting.exposure.toFixed(1)}</span>
+              <span className="text-brand-muted text-xs">{lighting.exposure.toFixed(1)}</span>
             </div>
 
             <div className="flex items-center gap-2 pt-2">
@@ -600,7 +591,7 @@ export default function GLBViewer({ modelUrl }: GLBViewerProps) {
                 onChange={(e) => setLighting({ ...lighting, showGrid: e.target.checked })}
                 className="w-4 h-4"
               />
-              <label htmlFor="showGrid" className="text-white text-sm">Show Grid</label>
+              <label htmlFor="showGrid" className="text-brand-light text-sm">Show Grid</label>
             </div>
           </div>
         </div>
