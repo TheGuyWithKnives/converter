@@ -54,6 +54,18 @@ Deno.serve(async (req: Request) => {
       case 'animation':
         endpoint = '/openapi/v1/animations';
         break;
+      case 'text-to-image':
+        endpoint = '/openapi/v1/text-to-image';
+        break;
+      case 'image-to-image':
+        endpoint = '/openapi/v1/image-to-image';
+        break;
+      case 'balance': {
+        endpoint = '/openapi/v1/balance';
+        method = 'GET';
+        body = undefined;
+        break;
+      }
       case 'list-animations': {
         endpoint = '/openapi/v1/animations/library';
         method = 'GET';

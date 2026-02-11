@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import {
   Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap,
-  Paintbrush, Grid3x3, Play, Menu, X, Eye
+  Paintbrush, Grid3x3, Play, Menu, X, Eye, ImageIcon, Wand2
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -23,6 +23,9 @@ import { RemeshControl } from './components/RemeshControl';
 import { AnimationControl } from './components/AnimationControl';
 import { HelmetTools } from './components/HelmetTools';
 import { StlAnalysisPanel } from './components/StlAnalysisPanel';
+import { TextToImageGenerator } from './components/TextToImageGenerator';
+import { ImageToImageGenerator } from './components/ImageToImageGenerator';
+import { BalanceDisplay } from './components/BalanceDisplay';
 
 import {
   exportToOBJ, exportToSTL, exportToPLY, exportToFBX, downloadFile,
@@ -30,7 +33,7 @@ import {
 import { generateModelFromImage, QualityPreset } from './services/triposrService';
 
 type UploadMode = 'single' | 'multi';
-type GenerationMode = 'image' | 'text';
+type GenerationMode = 'image' | 'text' | 'text-to-image' | 'image-to-image';
 
 function App() {
   const [currentImage, setCurrentImage] = useState<{ file: File; url: string } | null>(null);
@@ -135,6 +138,25 @@ function App() {
       style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
       iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
     });
+  }, []);
+
+  const handleAiImageReady = useCallback((imageUrl: string) => {
+    setGenerationMode('image');
+    setUploadMode('single');
+    fetch(imageUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const file = new File([blob], 'ai-generated.png', { type: 'image/png' });
+        const url = URL.createObjectURL(file);
+        setCurrentImage({ file, url });
+        toast.success('Obrazek pripraven k 3D generovani', {
+          style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
+          iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+        });
+      })
+      .catch(() => {
+        toast.error('Nelze nacist obrazek');
+      });
   }, []);
 
   const handleRiggingComplete = useCallback((url: string, taskId?: string) => {
@@ -284,27 +306,49 @@ function App() {
             <div className="flex bg-brand-dark/50 rounded-lg p-1 border border-brand-light/5">
               <button
                 onClick={() => setGenerationMode('image')}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
                   generationMode === 'image'
                     ? 'bg-brand-accent text-brand-light shadow-glow'
                     : 'text-brand-muted hover:text-brand-light'
                 }`}
               >
-                <Images className="w-4 h-4" /> Image 3D
+                <Images className="w-3.5 h-3.5" /> Image 3D
               </button>
               <button
                 onClick={() => setGenerationMode('text')}
-                className={`px-4 py-2 rounded-md text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
                   generationMode === 'text'
                     ? 'bg-brand-accent text-brand-light shadow-glow'
                     : 'text-brand-muted hover:text-brand-light'
                 }`}
               >
-                <Edit3 className="w-4 h-4" /> Text 3D
+                <Edit3 className="w-3.5 h-3.5" /> Text 3D
+              </button>
+              <button
+                onClick={() => setGenerationMode('text-to-image')}
+                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
+                  generationMode === 'text-to-image'
+                    ? 'bg-brand-accent text-brand-light shadow-glow'
+                    : 'text-brand-muted hover:text-brand-light'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" /> Text Img
+              </button>
+              <button
+                onClick={() => setGenerationMode('image-to-image')}
+                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
+                  generationMode === 'image-to-image'
+                    ? 'bg-brand-accent text-brand-light shadow-glow'
+                    : 'text-brand-muted hover:text-brand-light'
+                }`}
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Img Edit
               </button>
             </div>
 
             <div className="h-8 w-px bg-brand-light/10 mx-2" />
+
+            <BalanceDisplay />
 
             <div className="flex gap-2">
               <button
@@ -343,22 +387,42 @@ function App() {
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-brand-light/5 px-4 py-3 space-y-3 bg-brand-panel animate-slide-down">
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Rezim</span>
+              <BalanceDisplay />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => { setGenerationMode('image'); setMobileMenuOpen(false); }}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 ${
+                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
                   generationMode === 'image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
                 }`}
               >
-                <Images className="w-4 h-4" /> Image 3D
+                <Images className="w-3.5 h-3.5" /> Image 3D
               </button>
               <button
                 onClick={() => { setGenerationMode('text'); setMobileMenuOpen(false); }}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 ${
+                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
                   generationMode === 'text' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
                 }`}
               >
-                <Edit3 className="w-4 h-4" /> Text 3D
+                <Edit3 className="w-3.5 h-3.5" /> Text 3D
+              </button>
+              <button
+                onClick={() => { setGenerationMode('text-to-image'); setMobileMenuOpen(false); }}
+                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
+                  generationMode === 'text-to-image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" /> Text Img
+              </button>
+              <button
+                onClick={() => { setGenerationMode('image-to-image'); setMobileMenuOpen(false); }}
+                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
+                  generationMode === 'image-to-image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
+                }`}
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Img Edit
               </button>
             </div>
             <div className="flex gap-2">
@@ -506,7 +570,7 @@ function App() {
                           <InstructionsChat onInstructionsChange={setInstructions} disabled={isProcessing} />
                         </div>
                       </>
-                    ) : (
+                    ) : generationMode === 'text' ? (
                       <div className="py-4">
                         <div className="mb-6 sm:mb-8">
                           <h2 className="text-lg sm:text-xl font-spartan font-bold flex items-center gap-3 mb-2 text-brand-light">
@@ -519,7 +583,15 @@ function App() {
                         </div>
                         <TextTo3DGenerator onModelReady={handleTextTo3DReady} />
                       </div>
-                    )}
+                    ) : generationMode === 'text-to-image' ? (
+                      <div className="py-4">
+                        <TextToImageGenerator onImageReady={handleAiImageReady} />
+                      </div>
+                    ) : generationMode === 'image-to-image' ? (
+                      <div className="py-4">
+                        <ImageToImageGenerator onImageReady={handleAiImageReady} />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
