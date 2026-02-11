@@ -30,19 +30,24 @@ export const BalanceDisplay = () => {
     <button
       onClick={fetchBalance}
       disabled={loading}
-      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-dark/50 border border-brand-light/10 hover:border-brand-accent/30 transition-all group"
+      className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-accent/10 to-brand-accent/5 border border-brand-accent/20 hover:border-brand-accent/40 transition-all group hover:shadow-[0_0_20px_rgba(255,0,60,0.15)]"
       title="Meshy.ai kredity - kliknete pro obnoveni"
     >
-      <Coins className="w-3.5 h-3.5 text-brand-accent" />
-      {loading ? (
-        <RefreshCw className="w-3 h-3 text-brand-muted animate-spin" />
-      ) : error ? (
-        <span className="text-xs text-brand-muted">--</span>
-      ) : (
-        <span className="text-xs font-bold text-brand-light tabular-nums">
-          {balance !== null ? balance.toLocaleString() : '--'}
-        </span>
-      )}
+      <div className="flex items-center gap-2">
+        <Coins className="w-4 h-4 text-brand-accent" />
+        <div className="flex flex-col items-start">
+          <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider leading-none">Kredity</span>
+          {loading ? (
+            <RefreshCw className="w-3 h-3 text-brand-muted animate-spin mt-0.5" />
+          ) : error ? (
+            <span className="text-sm font-bold text-brand-muted mt-0.5">--</span>
+          ) : (
+            <span className="text-sm font-bold text-brand-accent tabular-nums mt-0.5">
+              {balance !== null ? balance.toLocaleString() : '--'}
+            </span>
+          )}
+        </div>
+      </div>
     </button>
   );
 };

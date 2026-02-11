@@ -285,78 +285,93 @@ function App() {
       )}
 
       {/* HEADER */}
-      <header className="bg-brand-panel border-b border-brand-light/5 flex-shrink-0 z-10 relative">
-        <div className="px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-accent rounded-lg flex items-center justify-center shadow-glow transition-transform hover:scale-105">
-              <Box className="w-5 h-5 sm:w-6 sm:h-6 text-brand-light" />
+      <header className="bg-gradient-to-b from-brand-panel to-brand-panel/95 border-b border-brand-accent/10 flex-shrink-0 z-10 relative shadow-lg">
+        <div className="px-4 sm:px-6 py-4 sm:py-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-brand-accent to-brand-accent/80 rounded-xl flex items-center justify-center shadow-glow transition-transform hover:scale-105 relative">
+                <Box className="w-6 h-6 sm:w-7 sm:h-7 text-brand-light" />
+                <div className="absolute inset-0 rounded-xl bg-brand-light/10 blur-xl"></div>
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-spartan font-bold text-brand-light tracking-wide">
+                  GENZEO<span className="text-brand-accent">.</span>
+                </h1>
+                <p className="text-[10px] sm:text-xs text-brand-muted/80 tracking-[0.15em] uppercase font-semibold">
+                  AI-Powered 3D Generation Suite
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg sm:text-2xl font-spartan font-bold text-brand-light tracking-wide">
-                GENZEO<span className="text-brand-accent">.</span> platform
-              </h1>
-              <p className="text-[10px] sm:text-xs text-brand-muted tracking-[0.2em] uppercase font-bold hidden sm:block">
-                Professional 2D / 3D Suite
-              </p>
+
+            <div className="flex items-center gap-3">
+              <BalanceDisplay />
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 text-brand-muted hover:text-brand-light transition-colors rounded-lg hover:bg-brand-dark/30"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
           </div>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <div className="flex bg-brand-dark/50 rounded-lg p-1 border border-brand-light/5">
-              <button
-                onClick={() => setGenerationMode('image')}
-                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
-                  generationMode === 'image'
-                    ? 'bg-brand-accent text-brand-light shadow-glow'
-                    : 'text-brand-muted hover:text-brand-light'
-                }`}
-              >
-                <Images className="w-3.5 h-3.5" /> Image 3D
-              </button>
-              <button
-                onClick={() => setGenerationMode('text')}
-                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
-                  generationMode === 'text'
-                    ? 'bg-brand-accent text-brand-light shadow-glow'
-                    : 'text-brand-muted hover:text-brand-light'
-                }`}
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Text 3D
-              </button>
-              <button
-                onClick={() => setGenerationMode('text-to-image')}
-                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
-                  generationMode === 'text-to-image'
-                    ? 'bg-brand-accent text-brand-light shadow-glow'
-                    : 'text-brand-muted hover:text-brand-light'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" /> Text Img
-              </button>
-              <button
-                onClick={() => setGenerationMode('image-to-image')}
-                className={`px-3 py-2 rounded-md text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${
-                  generationMode === 'image-to-image'
-                    ? 'bg-brand-accent text-brand-light shadow-glow'
-                    : 'text-brand-muted hover:text-brand-light'
-                }`}
-              >
-                <Wand2 className="w-3.5 h-3.5" /> Img Edit
-              </button>
+          <div className="hidden md:flex items-center justify-between gap-6">
+            {/* Generation Modes */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider px-2">Generovani</span>
+              <div className="flex bg-brand-dark/70 rounded-xl p-1.5 border border-brand-light/5 shadow-inner">
+                <button
+                  onClick={() => setGenerationMode('image')}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                    generationMode === 'image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
+                  }`}
+                >
+                  <Images className="w-4 h-4" /> Image → 3D
+                </button>
+                <button
+                  onClick={() => setGenerationMode('text')}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                    generationMode === 'text'
+                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
+                  }`}
+                >
+                  <Edit3 className="w-4 h-4" /> Text → 3D
+                </button>
+                <div className="w-px bg-brand-light/10 mx-1"></div>
+                <button
+                  onClick={() => setGenerationMode('text-to-image')}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                    generationMode === 'text-to-image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" /> Text → Img
+                </button>
+                <button
+                  onClick={() => setGenerationMode('image-to-image')}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                    generationMode === 'image-to-image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
+                  }`}
+                >
+                  <Wand2 className="w-4 h-4" /> Img → Img
+                </button>
+              </div>
             </div>
 
-            <div className="h-8 w-px bg-brand-light/10 mx-2" />
-
-            <BalanceDisplay />
-
+            {/* Workspace Tabs */}
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveTab('upload')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border ${
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 ${
                   activeTab === 'upload'
-                    ? 'border-brand-accent text-brand-accent bg-brand-accent/5'
-                    : 'border-transparent text-brand-muted hover:text-brand-light'
+                    ? 'border-brand-accent text-brand-light bg-brand-accent/10'
+                    : 'border-brand-light/10 text-brand-muted hover:text-brand-light hover:border-brand-light/20'
                 }`}
               >
                 <Upload className="w-4 h-4" /> Studio
@@ -364,85 +379,104 @@ function App() {
               <button
                 onClick={() => setActiveTab('viewer')}
                 disabled={!hasModel}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border ${
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 relative ${
                   activeTab === 'viewer'
-                    ? 'border-brand-accent text-brand-accent bg-brand-accent/5'
-                    : 'border-transparent text-brand-muted hover:text-brand-light'
+                    ? 'border-brand-accent text-brand-light bg-brand-accent/10'
+                    : 'border-brand-light/10 text-brand-muted hover:text-brand-light hover:border-brand-light/20'
                 } disabled:opacity-30 disabled:cursor-not-allowed`}
               >
                 <Layout className="w-4 h-4" /> Viewer
+                {hasModel && activeTab !== 'viewer' && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent rounded-full animate-pulse"></span>
+                )}
               </button>
             </div>
           </div>
-
-          {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-brand-muted hover:text-brand-light transition-colors"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
         </div>
 
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-brand-light/5 px-4 py-3 space-y-3 bg-brand-panel animate-slide-down">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-bold text-brand-muted uppercase tracking-wider">Rezim</span>
-              <BalanceDisplay />
+          <div className="md:hidden border-t border-brand-accent/10 px-4 py-4 space-y-4 bg-gradient-to-b from-brand-panel to-brand-dark/50 animate-slide-down shadow-2xl">
+            {/* Generation Modes Section */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider px-1">Režim generování</span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => { setGenerationMode('image'); setMobileMenuOpen(false); }}
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                    generationMode === 'image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
+                      : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
+                  }`}
+                >
+                  <Images className="w-5 h-5" />
+                  <span>Image → 3D</span>
+                </button>
+                <button
+                  onClick={() => { setGenerationMode('text'); setMobileMenuOpen(false); }}
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                    generationMode === 'text'
+                      ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
+                      : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
+                  }`}
+                >
+                  <Edit3 className="w-5 h-5" />
+                  <span>Text → 3D</span>
+                </button>
+                <button
+                  onClick={() => { setGenerationMode('text-to-image'); setMobileMenuOpen(false); }}
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                    generationMode === 'text-to-image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
+                      : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
+                  }`}
+                >
+                  <ImageIcon className="w-5 h-5" />
+                  <span>Text → Img</span>
+                </button>
+                <button
+                  onClick={() => { setGenerationMode('image-to-image'); setMobileMenuOpen(false); }}
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                    generationMode === 'image-to-image'
+                      ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
+                      : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
+                  }`}
+                >
+                  <Wand2 className="w-5 h-5" />
+                  <span>Img → Img</span>
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => { setGenerationMode('image'); setMobileMenuOpen(false); }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                  generationMode === 'image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
-                }`}
-              >
-                <Images className="w-3.5 h-3.5" /> Image 3D
-              </button>
-              <button
-                onClick={() => { setGenerationMode('text'); setMobileMenuOpen(false); }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                  generationMode === 'text' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
-                }`}
-              >
-                <Edit3 className="w-3.5 h-3.5" /> Text 3D
-              </button>
-              <button
-                onClick={() => { setGenerationMode('text-to-image'); setMobileMenuOpen(false); }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                  generationMode === 'text-to-image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" /> Text Img
-              </button>
-              <button
-                onClick={() => { setGenerationMode('image-to-image'); setMobileMenuOpen(false); }}
-                className={`py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 ${
-                  generationMode === 'image-to-image' ? 'bg-brand-accent text-brand-light' : 'bg-brand-dark text-brand-muted'
-                }`}
-              >
-                <Wand2 className="w-3.5 h-3.5" /> Img Edit
-              </button>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border ${
-                  activeTab === 'upload' ? 'border-brand-accent text-brand-accent' : 'border-brand-light/10 text-brand-muted'
-                }`}
-              >
-                <Upload className="w-4 h-4" /> Studio
-              </button>
-              <button
-                onClick={() => { setActiveTab('viewer'); setMobileMenuOpen(false); }}
-                disabled={!hasModel}
-                className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border ${
-                  activeTab === 'viewer' ? 'border-brand-accent text-brand-accent' : 'border-brand-light/10 text-brand-muted'
-                } disabled:opacity-30`}
-              >
-                <Layout className="w-4 h-4" /> Viewer
-              </button>
+
+            {/* Workspace Section */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider px-1">Pracovní prostor</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all ${
+                    activeTab === 'upload'
+                      ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
+                      : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
+                  }`}
+                >
+                  <Upload className="w-4 h-4" /> Studio
+                </button>
+                <button
+                  onClick={() => { setActiveTab('viewer'); setMobileMenuOpen(false); }}
+                  disabled={!hasModel}
+                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all relative ${
+                    activeTab === 'viewer'
+                      ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
+                      : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
+                  } disabled:opacity-30 disabled:cursor-not-allowed`}
+                >
+                  <Layout className="w-4 h-4" /> Viewer
+                  {hasModel && activeTab !== 'viewer' && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent rounded-full animate-pulse"></span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -487,18 +521,25 @@ function App() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                 {/* LEFT PANEL */}
                 <div className="lg:col-span-8 space-y-6">
-                  <div className="bg-brand-panel border border-brand-light/5 rounded-2xl shadow-2xl p-5 sm:p-8 backdrop-blur-sm bg-opacity-95 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-brand-accent to-transparent opacity-70" />
+                  <div className="bg-gradient-to-br from-brand-panel to-brand-panel/80 border border-brand-accent/10 rounded-3xl shadow-2xl p-6 sm:p-10 backdrop-blur-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-accent via-brand-accent/50 to-transparent"></div>
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-brand-accent/5 blur-[100px] rounded-full pointer-events-none"></div>
 
                     {generationMode === 'image' ? (
                       <>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
-                          <h2 className="text-lg sm:text-xl font-spartan font-bold flex items-center gap-3 text-brand-light">
-                            <span className="w-8 h-8 rounded bg-brand-accent/20 flex items-center justify-center text-brand-accent border border-brand-accent/20">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 sm:mb-10 gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-accent to-brand-accent/70 flex items-center justify-center text-brand-light shadow-glow relative">
                               <Images className="w-5 h-5" />
-                            </span>
-                            Nahrat podklady
-                          </h2>
+                              <div className="absolute inset-0 rounded-xl bg-brand-light/10 blur-md"></div>
+                            </div>
+                            <div>
+                              <h2 className="text-lg sm:text-xl font-spartan font-bold text-brand-light">
+                                Nahrat podklady
+                              </h2>
+                              <p className="text-[10px] text-brand-muted/70 uppercase tracking-wider">Vstupní materiály</p>
+                            </div>
+                          </div>
                           <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-light/5 self-start sm:self-auto">
                             <button
                               onClick={() => setUploadMode('single')}
@@ -523,20 +564,20 @@ function App() {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                          <div className="bg-brand-dark/50 p-4 sm:p-5 rounded-xl border border-brand-light/5 hover:border-brand-accent/30 transition-colors">
-                            <label className="block text-xs font-bold text-brand-muted uppercase mb-3 sm:mb-4 flex items-center gap-2 tracking-wider">
-                              <Sparkles className="w-3 h-3 text-brand-accent" /> Kvalita vystupu
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 relative">
+                          <div className="bg-gradient-to-br from-brand-dark/60 to-brand-dark/40 p-5 sm:p-6 rounded-2xl border border-brand-light/10 hover:border-brand-accent/30 transition-all shadow-lg">
+                            <label className="block text-[10px] font-bold text-brand-muted uppercase mb-4 flex items-center gap-2 tracking-wider">
+                              <Sparkles className="w-3.5 h-3.5 text-brand-accent" /> Kvalita vystupu
                             </label>
                             <div className="grid grid-cols-3 gap-2">
                               {['fast', 'quality', 'ultra'].map((q) => (
                                 <button
                                   key={q}
                                   onClick={() => setQualityPreset(q as QualityPreset)}
-                                  className={`py-2 rounded-lg text-sm font-bold border transition-all ${
+                                  className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                                     qualityPreset === q
-                                      ? 'border-brand-accent bg-brand-accent/10 text-brand-accent shadow-[0_0_10px_rgba(255,0,60,0.2)]'
-                                      : 'border-brand-light/10 bg-transparent text-brand-muted hover:border-brand-light/30 hover:text-brand-light'
+                                      ? 'border-brand-accent bg-brand-accent/15 text-brand-accent shadow-glow scale-105'
+                                      : 'border-brand-light/10 bg-brand-dark/30 text-brand-muted hover:border-brand-light/30 hover:text-brand-light hover:scale-102'
                                   }`}
                                 >
                                   {q.charAt(0).toUpperCase() + q.slice(1)}
@@ -550,17 +591,18 @@ function App() {
                               <button
                                 onClick={handleOpenEditor}
                                 disabled={isProcessing}
-                                className="w-full py-3 bg-brand-dark hover:bg-brand-light/5 border border-brand-light/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-brand-accent/50 text-brand-muted hover:text-brand-light"
+                                className="w-full py-3 bg-gradient-to-r from-brand-dark/80 to-brand-dark/60 hover:from-brand-dark hover:to-brand-dark/80 border-2 border-brand-light/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-brand-light/30 text-brand-muted hover:text-brand-light shadow-lg"
                               >
                                 <Edit3 className="w-4 h-4" /> Editor obrazku
                               </button>
                               <button
                                 onClick={handleGenerate}
                                 disabled={isProcessing}
-                                className="w-full py-3 bg-brand-accent hover:opacity-90 rounded-xl text-brand-light text-sm font-bold shadow-glow flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full py-4 bg-gradient-to-r from-brand-accent to-brand-accent/80 hover:from-brand-accent/90 hover:to-brand-accent/70 rounded-xl text-brand-light text-sm font-bold shadow-glow flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                               >
-                                <Sparkles className="w-4 h-4" />
-                                Generovat Model
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
+                                <Sparkles className="w-5 h-5 relative z-10" />
+                                <span className="relative z-10">Generovat Model</span>
                               </button>
                             </div>
                           )}
@@ -598,37 +640,53 @@ function App() {
                 {/* RIGHT PANEL - hidden on mobile, visible on lg */}
                 <div className="hidden lg:block lg:col-span-4 space-y-6">
                   {hasModel ? (
-                    <div className="bg-brand-dark rounded-2xl border border-brand-accent overflow-hidden h-64 relative shadow-glow group">
+                    <div className="bg-gradient-to-br from-brand-dark to-brand-panel rounded-3xl border-2 border-brand-accent/30 overflow-hidden h-72 relative shadow-2xl group">
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent"></div>
                       <div className="absolute inset-0">
                         {aiModelUrl ? <GLBViewer modelUrl={aiModelUrl} /> : <ThreeViewer mesh={mesh} />}
                       </div>
-                      <div className="absolute inset-0 bg-brand-dark/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                      <div className="absolute top-3 right-3 bg-brand-panel/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-brand-light/10 flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-bold text-brand-light uppercase tracking-wider">Nahled</span>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-8">
                         <button
                           onClick={() => setActiveTab('viewer')}
-                          className="bg-brand-accent text-brand-light px-8 py-3 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all shadow-glow flex items-center gap-2"
+                          className="bg-gradient-to-r from-brand-accent to-brand-accent/80 text-brand-light px-8 py-3.5 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all shadow-glow flex items-center gap-2 hover:scale-105"
                         >
-                          <Layout className="w-5 h-5" /> Otevrit Studio
+                          <Layout className="w-5 h-5" /> Otevrit ve Vieweru
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-brand-panel border border-brand-light/5 rounded-2xl p-8 text-center h-64 flex flex-col items-center justify-center opacity-70">
-                      <div className="w-20 h-20 bg-brand-dark rounded-full flex items-center justify-center mb-4 shadow-inner border border-brand-light/5">
-                        <Box className="w-8 h-8 text-brand-muted" />
+                    <div className="bg-gradient-to-br from-brand-panel to-brand-dark/50 border border-brand-light/5 rounded-3xl p-10 text-center h-72 flex flex-col items-center justify-center relative overflow-hidden">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,0,60,0.05),transparent_50%)]"></div>
+                      <div className="relative z-10">
+                        <div className="w-24 h-24 bg-gradient-to-br from-brand-dark to-brand-panel rounded-2xl flex items-center justify-center mb-5 shadow-2xl border border-brand-light/5 mx-auto">
+                          <Box className="w-10 h-10 text-brand-muted/50" />
+                        </div>
+                        <p className="text-brand-muted font-bold tracking-wide text-sm">ZATÍM ŽÁDNÝ MODEL</p>
+                        <p className="text-brand-muted/50 text-xs mt-2 font-sans max-w-[200px] mx-auto leading-relaxed">
+                          Nahrajte obrázek nebo zadejte text pro generování
+                        </p>
                       </div>
-                      <p className="text-brand-muted font-bold tracking-wide">ZATIM ZADNY MODEL</p>
-                      <p className="text-brand-muted/60 text-xs mt-2 font-sans">Nahrajte obrazek nebo zadejte text vlevo</p>
                     </div>
                   )}
 
                   {aiModelUrl && (
-                    <div className="bg-brand-panel border-l-4 border-brand-accent rounded-r-xl p-6 shadow-xl relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
-                        <Bone className="w-24 h-24 text-brand-light" />
+                    <div className="bg-gradient-to-br from-brand-panel to-brand-panel/80 border-l-4 border-brand-accent rounded-2xl p-6 shadow-2xl relative overflow-hidden group hover:border-l-[6px] transition-all">
+                      <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+                        <Bone className="w-32 h-32 text-brand-light" />
                       </div>
-                      <div className="flex items-center gap-3 mb-4 relative z-10">
-                        <Bone className="text-brand-accent w-6 h-6" />
-                        <h3 className="font-spartan font-bold text-lg text-brand-light">AI Rigging</h3>
+                      <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="flex items-center gap-3 mb-5 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-accent/20 to-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
+                          <Bone className="text-brand-accent w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="font-spartan font-bold text-base text-brand-light">AI Rigging</h3>
+                          <p className="text-[10px] text-brand-muted/70 uppercase tracking-wider">Automatická kostra</p>
+                        </div>
                       </div>
                       <div className="relative z-10">
                         <RiggingControl modelUrl={aiModelUrl} onRigged={handleRiggingComplete} />
@@ -648,15 +706,19 @@ function App() {
                     />
                   </div>
 
-                  <div className="bg-gradient-to-br from-brand-accent/10 to-brand-panel rounded-2xl p-6 border border-brand-accent/20">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-brand-accent/20 p-2 rounded-lg">
-                        <Zap className="w-5 h-5 text-brand-accent" />
+                  <div className="bg-gradient-to-br from-brand-accent/15 via-brand-accent/10 to-brand-panel rounded-2xl p-6 border border-brand-accent/30 relative overflow-hidden group hover:shadow-glow transition-all">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/10 blur-3xl rounded-full"></div>
+                    <div className="relative z-10 flex items-start gap-4">
+                      <div className="bg-gradient-to-br from-brand-accent to-brand-accent/70 p-2.5 rounded-xl shadow-glow flex-shrink-0">
+                        <Zap className="w-5 h-5 text-brand-light" />
                       </div>
                       <div>
-                        <h4 className="font-bold text-brand-light mb-1 font-spartan text-sm">GENZEO TIP</h4>
-                        <p className="text-xs text-brand-muted leading-relaxed font-sans">
-                          Podporovane formaty: JPG, PNG pro AI generovani a STL pro analyzu tisku. STL soubory se automaticky zobrazuji s nastroji pro tisk.
+                        <h4 className="font-bold text-brand-light mb-2 font-spartan text-sm flex items-center gap-2">
+                          GENZEO TIP
+                          <span className="text-[9px] bg-brand-accent/20 px-2 py-0.5 rounded-full text-brand-accent">PRO</span>
+                        </h4>
+                        <p className="text-xs text-brand-muted/90 leading-relaxed font-sans">
+                          Podporované formáty: <span className="text-brand-light font-semibold">JPG, PNG</span> pro AI generování a <span className="text-brand-light font-semibold">STL</span> pro analýzu tisku. STL soubory se automaticky zobrazují s nástroji pro tisk.
                         </p>
                       </div>
                     </div>
@@ -674,39 +736,64 @@ function App() {
             <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 flex flex-col gap-3 sm:gap-4 max-w-[calc(100vw-2rem)] sm:max-w-none">
               <button
                 onClick={() => setActiveTab('upload')}
-                className="bg-brand-panel/90 backdrop-blur-md border border-brand-light/10 text-brand-light px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold hover:bg-brand-panel hover:border-brand-accent transition-all flex items-center gap-2 shadow-xl self-start"
+                className="bg-gradient-to-r from-brand-panel/95 to-brand-panel/90 backdrop-blur-xl border-2 border-brand-light/10 text-brand-light px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:border-brand-accent/50 hover:shadow-glow transition-all flex items-center gap-2 shadow-2xl self-start group"
               >
-                ← Zpet do Studia
+                <span className="transform group-hover:-translate-x-1 transition-transform">←</span>
+                <span>Zpět do Studia</span>
               </button>
 
               {aiModelUrl && (
-                <div className="w-64 sm:w-72 space-y-3 max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin">
-                  <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 shadow-2xl">
-                    <div className="flex items-center gap-2 mb-3 text-brand-accent font-bold text-xs uppercase tracking-wider">
-                      <Bone className="w-4 h-4" /> Rigging
+                <div className="w-64 sm:w-80 space-y-4 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 scrollbar-thin">
+                  <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-brand-accent/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-brand-accent/40 transition-all">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-accent/20 to-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
+                        <Bone className="w-4 h-4 text-brand-accent" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-brand-light font-spartan">Rigging</div>
+                        <div className="text-[9px] text-brand-muted uppercase tracking-wider">Automatická kostra</div>
+                      </div>
                     </div>
                     <RiggingControl modelUrl={aiModelUrl} onRigged={handleRiggingComplete} />
                   </div>
 
                   {rigTaskId && (
-                    <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 shadow-2xl">
-                      <div className="flex items-center gap-2 mb-3 text-amber-400 font-bold text-xs uppercase tracking-wider">
-                        <Play className="w-4 h-4" /> Animace
+                    <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-amber-400/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-amber-400/40 transition-all">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400/20 to-amber-400/10 flex items-center justify-center border border-amber-400/20">
+                          <Play className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-brand-light font-spartan">Animace</div>
+                          <div className="text-[9px] text-brand-muted uppercase tracking-wider">Pohyb modelu</div>
+                        </div>
                       </div>
                       <AnimationControl rigTaskId={rigTaskId} onAnimated={(url) => setAiModelUrl(url)} />
                     </div>
                   )}
 
-                  <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 shadow-2xl">
-                    <div className="flex items-center gap-2 mb-3 text-orange-400 font-bold text-xs uppercase tracking-wider">
-                      <Paintbrush className="w-4 h-4" /> AI Retexture
+                  <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-orange-400/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-orange-400/40 transition-all">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400/20 to-orange-400/10 flex items-center justify-center border border-orange-400/20">
+                        <Paintbrush className="w-4 h-4 text-orange-400" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-brand-light font-spartan">AI Retexture</div>
+                        <div className="text-[9px] text-brand-muted uppercase tracking-wider">Nová textura</div>
+                      </div>
                     </div>
                     <RetextureControl modelUrl={aiModelUrl} onRetextured={(url) => setAiModelUrl(url)} />
                   </div>
 
-                  <div className="bg-brand-panel/90 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 shadow-2xl">
-                    <div className="flex items-center gap-2 mb-3 text-cyan-400 font-bold text-xs uppercase tracking-wider">
-                      <Grid3x3 className="w-4 h-4" /> Remesh
+                  <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-cyan-400/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-cyan-400/40 transition-all">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400/20 to-cyan-400/10 flex items-center justify-center border border-cyan-400/20">
+                        <Grid3x3 className="w-4 h-4 text-cyan-400" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-brand-light font-spartan">Remesh</div>
+                        <div className="text-[9px] text-brand-muted uppercase tracking-wider">Optimalizace sítě</div>
+                      </div>
                     </div>
                     <RemeshControl modelUrl={aiModelUrl} onRemeshed={(url) => setAiModelUrl(url)} />
                   </div>
