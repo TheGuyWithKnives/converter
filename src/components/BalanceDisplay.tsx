@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Coins, Plus, History, User, LogOut, LogIn, Crown } from 'lucide-react';
+import { Coins, Plus, History, User, LogOut, LogIn, Crown, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCredits } from '../hooks/useCredits';
 import { PurchaseCreditsModal } from './credits/PurchaseCreditsModal';
 import { TransactionHistory } from './credits/TransactionHistory';
 import { AuthManager } from './auth/AuthManager';
+import AdminDashboard from './admin/AdminDashboard';
+import LowBalanceNotification from './admin/LowBalanceNotification';
 
 export const BalanceDisplay = () => {
   const { user, signOut } = useAuth();
@@ -13,6 +15,7 @@ export const BalanceDisplay = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
 
   if (!user) {
     return (
@@ -123,6 +126,21 @@ export const BalanceDisplay = () => {
                   </button>
                 </div>
 
+                {credits?.is_admin && (
+                  <div className="p-2 border-t border-brand-border">
+                    <button
+                      onClick={() => {
+                        setShowAdminDashboard(true);
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-blue-500/10 transition-colors text-left"
+                    >
+                      <Shield className="w-4 h-4 text-blue-400" />
+                      <span className="text-sm text-blue-400">Admin Dashboard</span>
+                    </button>
+                  </div>
+                )}
+
                 <div className="p-2 border-t border-brand-border">
                   <button
                     onClick={() => {
@@ -148,6 +166,24 @@ export const BalanceDisplay = () => {
       {showHistory && (
         <TransactionHistory onClose={() => setShowHistory(false)} />
       )}
+
+      {showAdminDashboard && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+          <div className="absolute top-4 right-4">
+            <button
+              onClick={() => setShowAdminDashboard(false)}
+              className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Zavřít
+            </button>
+          </div>
+          <div className="h-full overflow-auto">
+            <AdminDashboard />
+          </div>
+        </div>
+      )}
+
+      {credits?.is_admin && <LowBalanceNotification />}
     </>
   );
 };

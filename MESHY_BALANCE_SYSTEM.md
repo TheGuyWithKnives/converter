@@ -127,8 +127,14 @@ Kontroluje zůstatek a vytváří notifikace:
 ### Přístup k Admin Dashboardu
 
 1. Přihlaste se jako uživatel s `is_admin = true` v `user_profiles`
-2. Klikněte na "Admin" tlačítko v pravém horním rohu
-3. Dashboard se otevře v overlay režimu
+2. Klikněte na ikonu uživatele v pravém horním rohu (vedle balance)
+3. V dropdown menu vyberte "Admin Dashboard" (viditelné pouze pro adminy)
+4. Dashboard se otevře v overlay režimu
+
+**Nové funkce:**
+- **Editovatelné ceny**: Klikněte na ikonu tužky vedle "Credit Pricing" pro editaci
+- **Manuální přidání balance**: Klikněte na + ikonu vedle Meshy.ai Balance
+- **Lepší error handling**: Detailní chybové zprávy při refresh balance
 
 ### Nastavení admin práv
 
@@ -141,13 +147,29 @@ WHERE id = 'USER_ID';
 
 ### Manuální refresh balance
 
+**Z Admin Dashboardu:**
+- Klikněte na tlačítko "Refresh Balance" v pravém horním rohu dashboardu
+- Zobrazí se spinner během načítání
+- Po úspěchu se zobrazí toast notifikace s aktuálním zůstatkem
+- Při chybě se zobrazí detailní chybová zpráva
+
+**Programově:**
 ```typescript
-// Zavolat z Admin Dashboardu nebo custom kódu
 const response = await fetch(
   `${SUPABASE_URL}/functions/v1/check-meshy-balance`,
   { method: 'POST' }
 );
 ```
+
+### Manuální přidání balance
+
+Pro testování nebo manuální korekci můžete přidat balance přímo v dashboardu:
+
+1. Otevřete Admin Dashboard
+2. V kartě "Meshy.ai Balance" klikněte na + ikonu
+3. Zadejte nový zůstatek
+4. Klikněte "Add"
+5. Zůstatek se přidá do historie s aktuálním časem
 
 ### Změna threshold pro notifikace
 
@@ -168,10 +190,17 @@ Marže: 50%
 
 ### Jak změnit pricing
 
+**Nový způsob (doporučeno):**
 1. Otevřete Admin Dashboard
-2. Sekce "Credit Pricing" zobrazuje aktuální ceny
-3. Pro změnu cen použijte SQL:
+2. V sekci "Credit Pricing" klikněte na ikonu tužky (Edit)
+3. Upravte hodnoty:
+   - **Meshy Cost**: Skutečná cena za 1 Meshy kredit
+   - **User Price**: Cena za 1 virtuální kredit pro uživatele
+   - **Margin %**: Vaše marže v procentech
+4. Klikněte na ikonu fajfky (Save) pro uložení
+5. Staré pricing se automaticky deaktivuje a vytvoří se nový
 
+**Starý způsob (SQL):**
 ```sql
 -- Deaktivovat staré pricing
 UPDATE credit_pricing SET active = false WHERE active = true;

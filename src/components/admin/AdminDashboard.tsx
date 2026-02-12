@@ -8,7 +8,11 @@ import {
   Users,
   Wallet,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Edit2,
+  Save,
+  X as XIcon,
+  Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -51,6 +55,19 @@ export default function AdminDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
 
+  const [editingPricing, setEditingPricing] = useState(false);
+  const [editedPricing, setEditedPricing] = useState({
+    meshy_cost: 0,
+    user_price: 0,
+    margin_percent: 0
+  });
+
+  const [showAddBalance, setShowAddBalance] = useState(false);
+  const [newBalance, setNewBalance] = useState('');
+
+  const [notificationThreshold, setNotificationThreshold] = useState(1000);
+  const [editingThreshold, setEditingThreshold] = useState(false);
+
   useEffect(() => {
     loadDashboardData();
     const interval = setInterval(loadDashboardData, 60000);
@@ -90,14 +107,21 @@ export default function AdminDashboard() {
       .from('credit_pricing')
       .select('*')
       .eq('active', true)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error loading pricing:', error);
       return;
     }
 
-    setPricing(data);
+    if (data) {
+      setPricing(data);
+      setEditedPricing({
+        meshy_cost: Number(data.meshy_cost),
+        user_price: Number(data.user_price),
+        margin_percent: Number(data.margin_percent)
+      });
+    }
   };
 
   const loadUserStats = async () => {
@@ -146,7 +170,8 @@ export default function AdminDashboard() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to refresh balance');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to refresh balance');
       }
 
       const result = await response.json();
@@ -159,9 +184,67 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error('Failed to refresh balance');
+      toast.error(`Failed to refresh: ${(error as Error).message}`);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const savePricing = async () => {
+    if (!pricing) return;
+
+    try {
+      const { error: deactivateError } = await supabase
+        .from('credit_pricing')
+        .update({ active: false })
+        .eq('active', true);
+
+      if (deactivateError) throw deactivateError;
+
+      const { error: insertError } = await supabase
+        .from('credit_pricing')
+        .insert({
+          meshy_cost: editedPricing.meshy_cost,
+          user_price: editedPricing.user_price,
+          margin_percent: editedPricing.margin_percent,
+          active: true
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success('Pricing updated successfully');
+      setEditingPricing(false);
+      await loadPricing();
+    } catch (error) {
+      console.error('Error updating pricing:', error);
+      toast.error('Failed to update pricing');
+    }
+  };
+
+  const addBalanceManually = async () => {
+    const balance = parseInt(newBalance);
+    if (isNaN(balance) || balance < 0) {
+      toast.error('Invalid balance value');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('meshy_balance_log')
+        .insert({
+          balance,
+          last_checked: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast.success('Balance added successfully');
+      setNewBalance('');
+      setShowAddBalance(false);
+      await loadBalance();
+    } catch (error) {
+      console.error('Error adding balance:', error);
+      toast.error('Failed to add balance');
     }
   };
 
@@ -194,7 +277,7 @@ export default function AdminDashboard() {
   };
 
   const profitData = calculateProfit();
-  const isBalanceLow = latestBalance !== null && latestBalance < 1000;
+  const isBalanceLow = latestBalance !== null && latestBalance < notificationThreshold;
   const unreadNotifications = notifications.filter(n => !n.is_read);
 
   return (
@@ -255,11 +338,37 @@ export default function AdminDashboard() {
               )}
             </div>
             <p className="text-slate-400 text-sm mb-1">Meshy.ai Balance</p>
-            <p className={`text-3xl font-bold ${
-              isBalanceLow ? 'text-red-400' : 'text-white'
-            }`}>
-              {latestBalance !== null ? latestBalance.toLocaleString() : '—'}
-            </p>
+            <div className="flex items-baseline gap-2">
+              <p className={`text-3xl font-bold ${
+                isBalanceLow ? 'text-red-400' : 'text-white'
+              }`}>
+                {latestBalance !== null ? latestBalance.toLocaleString() : '—'}
+              </p>
+              <button
+                onClick={() => setShowAddBalance(!showAddBalance)}
+                className="text-blue-400 hover:text-blue-300 transition-colors"
+                title="Add balance manually"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {showAddBalance && (
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="number"
+                  value={newBalance}
+                  onChange={(e) => setNewBalance(e.target.value)}
+                  placeholder="Balance"
+                  className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                />
+                <button
+                  onClick={addBalanceManually}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Add
+                </button>
+              </div>
+            )}
             <p className="text-slate-500 text-xs mt-2">Real API Credits</p>
           </div>
 
@@ -336,39 +445,118 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-400" />
-              Credit Pricing
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-400" />
+                Credit Pricing
+              </h2>
+              {!editingPricing ? (
+                <button
+                  onClick={() => setEditingPricing(true)}
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={savePricing}
+                    className="text-green-400 hover:text-green-300 transition-colors"
+                  >
+                    <Save className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingPricing(false);
+                      if (pricing) {
+                        setEditedPricing({
+                          meshy_cost: Number(pricing.meshy_cost),
+                          user_price: Number(pricing.user_price),
+                          margin_percent: Number(pricing.margin_percent)
+                        });
+                      }
+                    }}
+                    className="text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
             {pricing && (
               <div className="space-y-4">
                 <div className="p-4 bg-slate-900/50 rounded-lg">
                   <p className="text-slate-400 text-sm mb-1">Meshy Cost (Real)</p>
-                  <p className="text-2xl font-bold text-white">
-                    {pricing.meshy_cost.toFixed(4)} Kč
-                  </p>
+                  {editingPricing ? (
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={editedPricing.meshy_cost}
+                      onChange={(e) => setEditedPricing({
+                        ...editedPricing,
+                        meshy_cost: parseFloat(e.target.value) || 0
+                      })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-white">
+                      {pricing.meshy_cost.toFixed(4)} Kč
+                    </p>
+                  )}
                   <p className="text-slate-500 text-xs mt-1">per credit</p>
                 </div>
 
                 <div className="p-4 bg-slate-900/50 rounded-lg">
                   <p className="text-slate-400 text-sm mb-1">User Price</p>
-                  <p className="text-2xl font-bold text-white">
-                    {pricing.user_price.toFixed(4)} Kč
-                  </p>
+                  {editingPricing ? (
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={editedPricing.user_price}
+                      onChange={(e) => setEditedPricing({
+                        ...editedPricing,
+                        user_price: parseFloat(e.target.value) || 0
+                      })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-white">
+                      {pricing.user_price.toFixed(4)} Kč
+                    </p>
+                  )}
                   <p className="text-slate-500 text-xs mt-1">per virtual credit</p>
                 </div>
 
                 <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                   <p className="text-green-400 text-sm mb-1">Profit per Credit</p>
                   <p className="text-2xl font-bold text-green-300">
-                    {(pricing.user_price - pricing.meshy_cost).toFixed(4)} Kč
+                    {editingPricing
+                      ? (editedPricing.user_price - editedPricing.meshy_cost).toFixed(4)
+                      : (pricing.user_price - pricing.meshy_cost).toFixed(4)
+                    } Kč
                   </p>
-                  <p className="text-green-400/70 text-xs mt-1">
-                    {pricing.margin_percent.toFixed(2)}% margin
-                  </p>
+                  {editingPricing ? (
+                    <div className="mt-2">
+                      <p className="text-green-400/70 text-xs mb-1">Margin %</p>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedPricing.margin_percent}
+                        onChange={(e) => setEditedPricing({
+                          ...editedPricing,
+                          margin_percent: parseFloat(e.target.value) || 0
+                        })}
+                        className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-green-400/70 text-xs mt-1">
+                      {pricing.margin_percent.toFixed(2)}% margin
+                    </p>
+                  )}
                 </div>
 
-                {profitData && (
+                {profitData && !editingPricing && (
                   <div className="p-4 bg-slate-900/50 rounded-lg mt-4">
                     <p className="text-slate-400 text-sm mb-3">Financial Summary</p>
                     <div className="space-y-2 text-sm">

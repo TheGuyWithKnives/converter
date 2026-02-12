@@ -26,7 +26,6 @@ import { StlAnalysisPanel } from './components/StlAnalysisPanel';
 import { TextToImageGenerator } from './components/TextToImageGenerator';
 import { ImageToImageGenerator } from './components/ImageToImageGenerator';
 import { BalanceDisplay } from './components/BalanceDisplay';
-import AdminButton from './components/AdminButton';
 
 import {
   exportToOBJ, exportToSTL, exportToPLY, exportToFBX, downloadFile,
@@ -273,8 +272,6 @@ function App() {
           },
         }}
       />
-
-      <AdminButton />
 
       {isProcessing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-dark/95 backdrop-blur-md">
