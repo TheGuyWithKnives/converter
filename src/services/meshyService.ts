@@ -103,6 +103,31 @@ export interface BalanceResponse {
   balance: number;
 }
 
+async function refreshMeshyBalance() {
+  try {
+    await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-meshy-balance`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  } catch (error) {
+    console.error('Failed to refresh Meshy balance:', error);
+  }
+}
+
+async function invokeMeshyAPI<T>(action: string, payload: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke('meshy-api', {
+    body: { action, payload }
+  });
+  if (error) throw error;
+  refreshMeshyBalance();
+  return data as T;
+}
+
 export const meshyService = {
   async createTextTo3D(prompt: string, options?: Partial<TextTo3DOptions>) {
     const payload: Record<string, unknown> = {
@@ -125,11 +150,8 @@ export const meshyService = {
     if (options?.pose_mode !== undefined) payload.pose_mode = options.pose_mode;
     if (options?.moderation !== undefined) payload.moderation = options.moderation;
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'text-to-3d', payload }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('text-to-3d', payload);
+    return data.result;
   },
 
   async refineTextTo3D(previewTaskId: string, texturePrompt?: string, textureImageUrl?: string, aiModel?: string) {
@@ -141,11 +163,8 @@ export const meshyService = {
     if (textureImageUrl) payload.texture_image_url = textureImageUrl;
     if (aiModel) payload.ai_model = aiModel;
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'text-to-3d', payload }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('text-to-3d', payload);
+    return data.result;
   },
 
   async createImageTo3D(imageUrl: string, options?: Partial<ImageTo3DOptions>) {
@@ -167,11 +186,8 @@ export const meshyService = {
     if (options?.should_texture !== undefined) payload.should_texture = options.should_texture;
     if (options?.moderation !== undefined) payload.moderation = options.moderation;
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'image-to-3d', payload }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('image-to-3d', payload);
+    return data.result;
   },
 
   async createRigging(modelUrl: string, options?: Partial<RiggingOptions>) {
@@ -182,19 +198,13 @@ export const meshyService = {
     if (options?.height_meters) payload.height_meters = options.height_meters;
     if (options?.texture_image_url) payload.texture_image_url = options.texture_image_url;
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'rigging', payload }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('rigging', payload);
+    return data.result;
   },
 
   async createRetexture(options: RetextureOptions) {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'retexture', payload: options }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('retexture', options);
+    return data.result;
   },
 
   async createRemesh(options: RemeshOptions) {
@@ -203,51 +213,33 @@ export const meshyService = {
       target_formats: options.target_formats || ['glb'],
     };
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'remesh', payload }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('remesh', payload);
+    return data.result;
   },
 
   async createAnimation(options: AnimationOptions) {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'animation', payload: options }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('animation', options);
+    return data.result;
   },
 
   async listAnimationLibrary() {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'list-animations', payload: {} }
-    });
-    if (error) throw error;
-    return data as Array<{ action_id: string; name: string; category: string }>;
+    const data = await invokeMeshyAPI<Array<{ action_id: string; name: string; category: string }>>('list-animations', {});
+    return data;
   },
 
   async createTextToImage(options: TextToImageOptions) {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'text-to-image', payload: options }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('text-to-image', options);
+    return data.result;
   },
 
   async createImageToImage(options: ImageToImageOptions) {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'image-to-image', payload: options }
-    });
-    if (error) throw error;
-    return data.result as string;
+    const data = await invokeMeshyAPI<{ result: string }>('image-to-image', options);
+    return data.result;
   },
 
   async getBalance(): Promise<BalanceResponse> {
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'balance', payload: {} }
-    });
-    if (error) throw error;
-    return data as BalanceResponse;
+    const data = await invokeMeshyAPI<BalanceResponse>('balance', {});
+    return data;
   },
 
   async getTaskStatus(taskId: string, type: TaskType) {
@@ -282,10 +274,7 @@ export const meshyService = {
         break;
     }
 
-    const { data, error } = await supabase.functions.invoke('meshy-api', {
-      body: { action: 'get-task', payload: { taskId, endpoint } }
-    });
-    if (error) throw error;
+    const data = await invokeMeshyAPI<unknown>('get-task', { taskId, endpoint });
     return data;
   }
 };
