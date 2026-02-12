@@ -65,6 +65,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (error) return { error };
 
+      if (data.user) {
+        try {
+          const { data: initResult, error: initError } = await supabase.rpc(
+            'initialize_new_user_account',
+            {
+              p_username: username,
+              p_full_name: fullName,
+            }
+          );
+
+          if (initError) {
+            console.error('Failed to initialize user account:', initError);
+          } else if (initResult && !initResult.success) {
+            console.error('Account initialization failed:', initResult.error);
+          }
+        } catch (initError) {
+          console.error('Exception during account initialization:', initError);
+        }
+      }
+
       return { error: null };
     } catch (error) {
       return { error: error as AuthError };
@@ -73,12 +93,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error, data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      return { error };
+      if (error) return { error };
+
+      if (data.user) {
+        try {
+          const { data: profileCheck } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', data.user.id)
+            .maybeSingle();
+
+          if (!profileCheck) {
+            await supabase.rpc('initialize_new_user_account', {
+              p_username: data.user.user_metadata?.username,
+              p_full_name: data.user.user_metadata?.full_name,
+            });
+          }
+        } catch (checkError) {
+          console.error('Profile check/init error:', checkError);
+        }
+      }
+
+      return { error: null };
     } catch (error) {
       return { error: error as AuthError };
     }
