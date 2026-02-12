@@ -69,8 +69,12 @@ export default function AdminDashboard() {
   const [editingThreshold, setEditingThreshold] = useState(false);
 
   useEffect(() => {
-    loadDashboardData();
-    const interval = setInterval(loadDashboardData, 60000);
+    refreshBalance();
+
+    const interval = setInterval(() => {
+      refreshBalance();
+    }, 60000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -169,22 +173,27 @@ export default function AdminDashboard() {
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to refresh balance');
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        throw new Error(`Server error (${response.status}): ${response.statusText}`);
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || `API error: ${response.statusText}`);
+      }
 
       if (result.success) {
-        toast.success(`Balance refreshed: ${result.balance} credits`);
+        toast.success(`Balance refreshed: ${result.balance.toLocaleString()} credits`);
         await loadDashboardData();
       } else {
-        throw new Error(result.error || 'Unknown error');
+        throw new Error(result.error || 'Refresh failed without error message');
       }
     } catch (error) {
       console.error('Error refreshing balance:', error);
-      toast.error(`Failed to refresh: ${(error as Error).message}`);
+      const errorMessage = (error as Error).message;
+      toast.error(errorMessage.startsWith('Failed to') ? errorMessage : `Failed to refresh: ${errorMessage}`);
     } finally {
       setIsRefreshing(false);
     }
@@ -326,21 +335,26 @@ export default function AdminDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className={`bg-slate-800/50 backdrop-blur rounded-xl p-6 border ${
-            isBalanceLow ? 'border-red-500/30' : 'border-slate-700/50'
+          <div className={`bg-slate-800/50 backdrop-blur rounded-xl p-6 border transition-all ${
+            isBalanceLow ? 'border-red-500/30 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]'
           }`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Wallet className="w-6 h-6 text-blue-400" />
+              <div className={`p-2 rounded-lg ${isBalanceLow ? 'bg-red-500/10' : 'bg-blue-500/10'}`}>
+                <Wallet className={`w-6 h-6 ${isBalanceLow ? 'text-red-400' : 'text-blue-400'} ${isRefreshing ? 'animate-pulse' : ''}`} />
               </div>
               {isBalanceLow && (
-                <AlertCircle className="w-5 h-5 text-red-400" />
+                <AlertCircle className="w-5 h-5 text-red-400 animate-pulse" />
               )}
             </div>
-            <p className="text-slate-400 text-sm mb-1">Meshy.ai Balance</p>
+            <p className="text-slate-400 text-sm mb-1 flex items-center gap-2">
+              <span>Meshy.ai Balance</span>
+              {isRefreshing && (
+                <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+              )}
+            </p>
             <div className="flex items-baseline gap-2">
-              <p className={`text-3xl font-bold ${
-                isBalanceLow ? 'text-red-400' : 'text-white'
+              <p className={`text-3xl font-bold tabular-nums transition-colors ${
+                isBalanceLow ? 'text-red-400' : 'text-blue-400'
               }`}>
                 {latestBalance !== null ? latestBalance.toLocaleString() : '—'}
               </p>
@@ -369,7 +383,16 @@ export default function AdminDashboard() {
                 </button>
               </div>
             )}
-            <p className="text-slate-500 text-xs mt-2">Real API Credits</p>
+            <div className="flex items-center justify-between mt-2">
+              <p className={`text-xs ${isBalanceLow ? 'text-red-400/70' : 'text-slate-500'}`}>
+                Live from Meshy API
+              </p>
+              {lastChecked && (
+                <p className="text-xs text-slate-500">
+                  {new Date(lastChecked).toLocaleTimeString('cs-CZ')}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">

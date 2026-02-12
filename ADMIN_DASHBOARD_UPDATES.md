@@ -4,6 +4,27 @@
 
 Byly provedeny následující vylepšení Admin Dashboardu:
 
+### Poslední aktualizace (2026-02-12)
+
+**Low Balance Threshold změněn na 100 kreditů:**
+- Notifikace se nyní zobrazí, když balance klesne pod 100 kreditů (dříve 1000)
+- Rychlejší varování před vyprázdněním účtu
+
+**Opravené error handling:**
+- Odstraněny redundantní chybové zprávy ("Failed to refresh: Failed to refresh balance")
+- Konkrétnější error messages z API
+- Lepší parsování chyb ze serveru
+
+**Live Balance z Meshy API:**
+- Balance se automaticky aktualizuje při otevření dashboardu
+- Auto-refresh každých 60 sekund
+- Vizuální indikátory během refresh (spinner, animate-pulse)
+- Label "Live from Meshy API" pro jasnost
+- Zobrazení času poslední aktualizace
+- Barevné schéma: modré pro normální stav, červené pro nízký balance
+
+---
+
 ### 1. Přesunutí přístupu k dashboardu
 
 **Předtím:**

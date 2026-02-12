@@ -31,7 +31,7 @@ Po každém API volání k Meshy.ai se automaticky:
 
 **Automatické pop-up notifikace**
 - Zobrazují se pouze adminům
-- Objeví se když zůstatek klesne pod 1000 kreditů
+- Objeví se když zůstatek klesne pod 100 kreditů
 - Real-time aktualizace přes Supabase Realtime
 - Tlačítko "Top Up Now" otevře Meshy.ai billing
 
@@ -145,6 +145,28 @@ SET is_admin = true
 WHERE id = 'USER_ID';
 ```
 
+### Live Balance z Meshy API
+
+Admin Dashboard nyní zobrazuje **skutečný live balance** přímo z Meshy.ai API:
+
+**Automatické aktualizace:**
+- Balance se automaticky načte při otevření dashboardu
+- Auto-refresh každých 60 sekund
+- Viditelný spinner během načítání
+- Zobrazení času poslední aktualizace
+
+**Vizuální indikátory:**
+- Modrý design pro normální stav (nad 100 kreditů)
+- Červený design s warning ikonami pro nízký balance (pod 100 kreditů)
+- Label "Live from Meshy API" pro jasnost
+- Animace během refresh operace
+
+**Výhody:**
+- Vždy aktuální data z Meshy API
+- Žádné cache problémy
+- Okamžité upozornění na změny
+- Přesné sledování spotřeby
+
 ### Manuální refresh balance
 
 **Z Admin Dashboardu:**
@@ -173,10 +195,29 @@ Pro testování nebo manuální korekci můžete přidat balance přímo v dashb
 
 ### Změna threshold pro notifikace
 
+**Aktuální threshold: 100 kreditů** (změněno z původních 1000)
+
+Notifikace se zobrazí automaticky, když balance klesne pod 100 kreditů.
+
+Pro změnu threshold vytvořte novou migraci:
+
 ```sql
--- Upravit threshold v check_low_balance_and_notify funkci
--- Aktuální hodnota: 1000 kreditů
--- Lze změnit v migraci nebo přes SQL příkaz
+CREATE OR REPLACE FUNCTION check_low_balance_and_notify()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  current_bal integer;
+  threshold_val integer := 50; -- Změnit na požadovanou hodnotu
+BEGIN
+  current_bal := get_latest_meshy_balance();
+
+  IF current_bal < threshold_val THEN
+    -- Vytvoří notifikaci pokud ještě neexistuje
+  END IF;
+END;
+$$;
 ```
 
 ## Pricing & Marže
