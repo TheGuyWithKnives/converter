@@ -638,7 +638,7 @@ function App() {
                 </div>
 
                 {/* RIGHT PANEL - hidden on mobile, visible on lg */}
-                <div className="hidden lg:block lg:col-span-4 space-y-6">
+                <div className="hidden lg:block lg:col-span-4 space-y-6 relative z-0">
                   {hasModel ? (
                     <div className="bg-gradient-to-br from-brand-dark to-brand-panel rounded-3xl border-2 border-brand-accent/30 overflow-hidden h-72 relative shadow-2xl group">
                       <div className="absolute inset-0 bg-gradient-to-br from-brand-accent/5 to-transparent"></div>
