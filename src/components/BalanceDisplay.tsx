@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Coins, Plus, History, User, LogOut, LogIn } from 'lucide-react';
+import { Coins, Plus, History, User, LogOut, LogIn, Crown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCredits } from '../hooks/useCredits';
 import { PurchaseCreditsModal } from './credits/PurchaseCreditsModal';
@@ -8,7 +8,7 @@ import { AuthManager } from './auth/AuthManager';
 
 export const BalanceDisplay = () => {
   const { user, signOut } = useAuth();
-  const { balance, loading } = useCredits();
+  const { balance, loading, credits } = useCredits();
   const [showPurchase, setShowPurchase] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -40,19 +40,33 @@ export const BalanceDisplay = () => {
       <div className="flex items-center gap-2">
         <button
           onClick={() => setShowPurchase(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-brand-accent/10 to-brand-accent/5 border border-brand-accent/20 hover:border-brand-accent/40 transition-all group hover:shadow-[0_0_20px_rgba(255,0,60,0.15)]"
-          title="Kliknete pro nákup kreditů"
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all group ${
+            credits?.is_admin
+              ? 'bg-gradient-to-r from-yellow-500/10 to-yellow-500/5 border-yellow-500/30 hover:border-yellow-500/50 hover:shadow-[0_0_20px_rgba(234,179,8,0.2)]'
+              : 'bg-gradient-to-r from-brand-accent/10 to-brand-accent/5 border-brand-accent/20 hover:border-brand-accent/40 hover:shadow-[0_0_20px_rgba(255,0,60,0.15)]'
+          }`}
+          title={credits?.is_admin ? 'Admin účet - Skutečný zůstatek z Meshy AI' : 'Klikněte pro nákup kreditů'}
         >
-          <Coins className="w-4 h-4 text-brand-accent" />
+          {credits?.is_admin ? (
+            <Crown className="w-4 h-4 text-yellow-500" />
+          ) : (
+            <Coins className="w-4 h-4 text-brand-accent" />
+          )}
           <div className="flex flex-col items-start">
-            <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider leading-none">
-              Kredity
+            <span className={`text-[9px] font-bold uppercase tracking-wider leading-none ${
+              credits?.is_admin ? 'text-yellow-600' : 'text-brand-muted'
+            }`}>
+              {credits?.is_admin ? 'Meshy AI' : 'Kredity'}
             </span>
-            <span className="text-sm font-bold text-brand-accent tabular-nums mt-0.5">
+            <span className={`text-sm font-bold tabular-nums mt-0.5 ${
+              credits?.is_admin ? 'text-yellow-500' : 'text-brand-accent'
+            }`}>
               {loading ? '...' : balance.toLocaleString()}
             </span>
           </div>
-          <Plus className="w-4 h-4 text-brand-accent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Plus className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity ${
+            credits?.is_admin ? 'text-yellow-500' : 'text-brand-accent'
+          }`} />
         </button>
 
         <div className="relative">
@@ -72,11 +86,16 @@ export const BalanceDisplay = () => {
               />
               <div className="absolute right-0 top-full mt-2 w-56 bg-brand-panel rounded-xl border border-brand-border shadow-2xl z-50 overflow-hidden animate-fade-in">
                 <div className="p-4 border-b border-brand-border">
-                  <div className="text-sm font-bold text-brand-light truncate">
-                    {user.email}
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-bold text-brand-light truncate flex-1">
+                      {user.email}
+                    </div>
+                    {credits?.is_admin && (
+                      <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" title="Admin účet" />
+                    )}
                   </div>
                   <div className="text-xs text-brand-muted mt-1">
-                    {balance} kreditů
+                    {balance} kreditů {credits?.is_admin && '(Meshy AI)'}
                   </div>
                 </div>
 

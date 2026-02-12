@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { meshyService } from './meshyService';
 
 export interface UserCredits {
   id: string;
@@ -9,6 +10,7 @@ export interface UserCredits {
   total_spent: number;
   created_at: string;
   updated_at: string;
+  is_admin?: boolean;
 }
 
 export interface CreditTransaction {
@@ -51,6 +53,22 @@ export const CREDIT_COSTS = {
   ANIMATION: 3,
 } as const;
 
+const checkIsAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data?.is_admin ?? false;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
 export const getUserCredits = async (userId: string): Promise<UserCredits | null> => {
   try {
     const { data, error } = await supabase
@@ -60,6 +78,27 @@ export const getUserCredits = async (userId: string): Promise<UserCredits | null
       .maybeSingle();
 
     if (error) throw error;
+    if (!data) return null;
+
+    const isAdmin = await checkIsAdmin(userId);
+
+    if (isAdmin) {
+      try {
+        const meshyBalance = await meshyService.getBalance();
+        return {
+          ...data,
+          balance: meshyBalance.balance,
+          is_admin: true,
+        };
+      } catch (meshyError) {
+        console.error('Error fetching Meshy balance, using local balance:', meshyError);
+        return {
+          ...data,
+          is_admin: true,
+        };
+      }
+    }
+
     return data;
   } catch (error) {
     console.error('Error fetching user credits:', error);
