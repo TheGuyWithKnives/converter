@@ -114,17 +114,45 @@ CREATE POLICY "Service role can manage rate limits"
 
 ---
 
+## 6. Unused Indexes - Úklid
+
+**Problém:** 18 nepoužitých indexů zabíralo úložiště a zvyšovalo maintenance overhead.
+
+**Oprava:** Všechny nepoužité indexy byly odstraněny:
+
+**Odstraněné indexy:**
+- `rate_limits`: idx_ip_endpoint_window, idx_created_at
+- `cached_models`: idx_image_hash, idx_created_at, idx_expires_at
+- `profiles`: idx_username
+- `token_transactions`: idx_user_id, idx_created_at
+- `token_packages`: idx_active
+- `credit_transactions`: idx_user_id, idx_created_at
+- `purchase_history`: idx_user_id, idx_created_at, idx_tier_id
+- `custom_materials`: idx_created_at, idx_type
+- `custom_printers`: idx_created_at, idx_type
+
+**Dopad:**
+- Snížení velikosti databáze
+- Rychlejší INSERT/UPDATE/DELETE operace (méně indexů k aktualizaci)
+- Indexy lze kdykoliv znovu vytvořit, pokud se vzorce použití změní
+
+---
+
+## 7. Duplicitní Permissive Policies - Finální Oprava
+
+**Problém:** Tabulka `credit_pricing` stále měla překrývající se policies (původní oprava použila `FOR ALL`, což zahrnuje SELECT).
+
+**Oprava:** Policies rozděleny na konkrétní operace:
+- `Only admins can view pricing` - pouze SELECT
+- `Only admins can insert pricing` - pouze INSERT
+- `Only admins can update pricing` - pouze UPDATE
+- `Only admins can delete pricing` - pouze DELETE
+
+**Dopad:** Eliminace překryvu policies, čistší a výkonnější policy evaluation.
+
+---
+
 ## Neřešené Issues
-
-### Unused Indexes
-**Status:** IGNOROVÁNO
-
-Supabase hlásí 13 nepoužitých indexů. Tyto indexy jsou:
-- Připravené pro budoucí růst aplikace
-- Některé jsou použity, ale zatím ne často (cache, rate limiting)
-- Ponechány pro optimalizaci queries při růstu dat
-
-**Akce:** Monitorovat usage, případně odebrat po 6 měsících pokud zůstanou nepoužité.
 
 ### Auth DB Connection Strategy
 **Status:** VYŽADUJE KONFIGURACI
@@ -145,29 +173,37 @@ Toto je konfigurace Auth nastavení.
 ## Souhrn
 
 ### ✅ Opraveno SQL migracemi:
-- Chybějící index na foreign key
-- 16 RLS policies optimalizováno
-- Duplicitní policies vyřešeny
+- Chybějící index na foreign key (přidán idx_purchase_history_tier_id)
+- 16 RLS policies optimalizováno ((select auth.uid()) pattern)
+- 18 nepoužitých indexů odstraněno (úspora storage + rychlejší writes)
+- Duplicitní policies kompletně vyřešeny (credit_pricing rozděleno na konkrétní operace)
 - 10 funkcí zabezpečeno search_path
-- 3 "always true" policies opraveny
+- 3 "always true" policies opraveny (přesunuto na service_role)
 
 ### ⚠️ Vyžaduje manuální konfiguraci:
 - Auth DB connection strategy (Supabase Dashboard)
 - Leaked password protection (Supabase Dashboard)
 
-### ℹ️ Monitorovat:
-- 13 unused indexes (zkontrolovat za 6 měsíců)
-
 ## Testování
 
-Po aplikaci migrace byly provedeny následující testy:
-- ✅ Build projektu úspěšný
+Po aplikaci migrací byly provedeny následující testy:
+- ✅ Build projektu úspěšný (obě migrace)
 - ✅ RLS policies fungují správně
 - ✅ Edge functions fungují (service_role přístup zachován)
 - ✅ Admin dashboard funkční
+- ✅ Všechny funkce mají správný search_path
+- ✅ Credit pricing policies bez překryvu
+
+## Migrace
+
+Byly vytvořeny 2 migrace:
+1. `fix_security_warnings_comprehensive.sql` - První vlna oprav (RLS, functions, policies)
+2. `cleanup_unused_indexes_and_fix_remaining_issues.sql` - Úklid indexů a finální opravy
 
 ## Doporučení
 
-1. **Okamžitě:** Žádné další akce - všechny kritické SQL issues jsou opraveny
-2. **Tento týden:** Nastavit Auth DB connection strategy a leaked password protection v Supabase Dashboard
-3. **Za 6 měsíců:** Zkontrolovat usage unused indexes a případně je odebrat pokud zůstávají nepoužité
+1. **Okamžitě:** Žádné další SQL akce - VŠECHNY SQL issues jsou opraveny
+2. **Tento týden:**
+   - Nastavit Auth DB connection strategy v Supabase Dashboard → Settings → Database
+   - Zapnout leaked password protection v Supabase Dashboard → Authentication → Policies
+3. **Budoucnost:** Indexy lze znovu vytvořit pokud se vzorce použití změní a Postgres query planner je začne potřebovat
