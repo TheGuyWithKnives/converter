@@ -1,7 +1,3 @@
-{
-type: "file_change",
-fileName: "3D Konverter.zip/src/components/ImageEditor.tsx",
-fullContent: `import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Undo, Redo, Check, X, ZoomIn, ZoomOut,
   RotateCw, FlipHorizontal, FlipVertical,
