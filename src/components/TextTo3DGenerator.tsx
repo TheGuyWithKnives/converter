@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { meshyService } from '../services/meshyService';
+import { modelHistoryService } from '../services/modelHistoryService';
 import { Loader2, Sparkles, ChevronDown, ChevronUp, Wand2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -34,6 +35,7 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
   const [previewReady, setPreviewReady] = useState(false);
   const [refining, setRefining] = useState(false);
   const [texturePrompt, setTexturePrompt] = useState('');
+  const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
 
   const pollTask = (taskId: string, type: 'text-to-3d', onSuccess: (task: any) => void) => {
     const interval = setInterval(async () => {
@@ -78,20 +80,56 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
         ...(negativePrompt && { negative_prompt: negativePrompt }),
       });
 
-      pollTask(taskId, 'text-to-3d', (task) => {
+      const historyEntry = await modelHistoryService.createEntry({
+        model_name: prompt.substring(0, 100),
+        model_type: 'text-to-3d',
+        status: 'processing',
+        task_id: taskId,
+        parameters: {
+          prompt,
+          negative_prompt: negativePrompt,
+          art_style: artStyle,
+          ai_model: aiModel,
+          enable_pbr: enablePBR,
+          mode: 'preview',
+        },
+        credits_used: 0,
+      });
+
+      if (historyEntry) {
+        setCurrentHistoryId(historyEntry.id);
+      }
+
+      pollTask(taskId, 'text-to-3d', async (task) => {
         setLoading(false);
         setPreviewTaskId(taskId);
         setPreviewReady(true);
         setStatus('');
         toast.success('Preview hotový! Můžete ho upřesnit nebo použít.', { id: 'text3d' });
+
+        if (historyEntry) {
+          await modelHistoryService.updateEntry(historyEntry.id, {
+            status: 'completed',
+            model_url: task.model_urls?.glb,
+            thumbnail_url: task.thumbnail_url,
+          });
+        }
+
         if (task.model_urls?.glb) {
           onModelReady(task.model_urls.glb);
         }
       });
-    } catch {
+    } catch (error) {
       setLoading(false);
       setStatus('');
       toast.error('Chyba při odesílání.', { id: 'text3d' });
+
+      if (currentHistoryId) {
+        await modelHistoryService.updateEntry(currentHistoryId, {
+          status: 'failed',
+          error_message: 'Failed to generate preview',
+        });
+      }
     }
   };
 
@@ -107,15 +145,38 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
         texturePrompt || undefined
       );
 
-      pollTask(taskId, 'text-to-3d', (task) => {
+      const refineHistoryEntry = await modelHistoryService.createEntry({
+        model_name: `${prompt.substring(0, 80)} (Refined)`,
+        model_type: 'text-to-3d',
+        status: 'processing',
+        task_id: taskId,
+        parameters: {
+          prompt,
+          texture_prompt: texturePrompt,
+          preview_task_id: previewTaskId,
+          mode: 'refine',
+        },
+        credits_used: 0,
+      });
+
+      pollTask(taskId, 'text-to-3d', async (task) => {
         setRefining(false);
         setStatus('');
         toast.success('Refine dokončen! Model s texturami připraven.', { id: 'text3d-refine' });
+
+        if (refineHistoryEntry) {
+          await modelHistoryService.updateEntry(refineHistoryEntry.id, {
+            status: 'completed',
+            model_url: task.model_urls?.glb,
+            thumbnail_url: task.thumbnail_url,
+          });
+        }
+
         if (task.model_urls?.glb) {
           onModelReady(task.model_urls.glb);
         }
       });
-    } catch {
+    } catch (error) {
       setRefining(false);
       setStatus('');
       toast.error('Chyba při Refine.', { id: 'text3d-refine' });

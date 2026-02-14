@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { meshyService } from '../services/meshyService';
+import { modelHistoryService } from '../services/modelHistoryService';
 import { Wand2, Loader2, Upload, X, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -61,6 +62,20 @@ export const ImageToImageGenerator = ({ onImageReady }: ImageToImageGeneratorPro
         generate_multi_view: multiView,
       });
 
+      const historyEntry = await modelHistoryService.createEntry({
+        model_name: prompt.substring(0, 100),
+        model_type: 'image-to-3d',
+        status: 'processing',
+        task_id: taskId,
+        parameters: {
+          prompt,
+          ai_model: aiModel,
+          multi_view: multiView,
+          num_reference_images: referenceImages.length,
+        },
+        credits_used: 0,
+      });
+
       const interval = setInterval(async () => {
         try {
           const task = await meshyService.getTaskStatus(taskId, 'image-to-image');
@@ -81,6 +96,14 @@ export const ImageToImageGenerator = ({ onImageReady }: ImageToImageGeneratorPro
             setResultImages(images);
             toast.success('Obrazek transformovan!', { id: 'img-to-img' });
 
+            if (historyEntry) {
+              await modelHistoryService.updateEntry(historyEntry.id, {
+                status: 'completed',
+                thumbnail_url: images[0],
+                metadata: { result_images: images },
+              });
+            }
+
             if (images.length > 0 && onImageReady) {
               onImageReady(images[0]);
             }
@@ -89,15 +112,22 @@ export const ImageToImageGenerator = ({ onImageReady }: ImageToImageGeneratorPro
             setLoading(false);
             setStatus('');
             toast.error('Transformace selhala.', { id: 'img-to-img' });
+
+            if (historyEntry) {
+              await modelHistoryService.updateEntry(historyEntry.id, {
+                status: 'failed',
+                error_message: 'Transformation failed',
+              });
+            }
           }
-        } catch {
+        } catch (error) {
           clearInterval(interval);
           setLoading(false);
           setStatus('');
           toast.error('Chyba pripojeni.', { id: 'img-to-img' });
         }
       }, 2000);
-    } catch {
+    } catch (error) {
       setLoading(false);
       setStatus('');
       toast.error('Chyba pri odesilani.', { id: 'img-to-img' });

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import {
   Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap,
-  Paintbrush, Grid3x3, Play, Menu, X, Eye, ImageIcon, Wand2
+  Paintbrush, Grid3x3, Play, Menu, X, Eye, ImageIcon, Wand2, Clock
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -26,6 +26,7 @@ import { StlAnalysisPanel } from './components/StlAnalysisPanel';
 import { TextToImageGenerator } from './components/TextToImageGenerator';
 import { ImageToImageGenerator } from './components/ImageToImageGenerator';
 import { BalanceDisplay } from './components/BalanceDisplay';
+import ModelHistory from './components/ModelHistory';
 
 import {
   exportToOBJ, exportToSTL, exportToPLY, exportToFBX, downloadFile,
@@ -54,7 +55,7 @@ function App() {
   const [showEditor, setShowEditor] = useState(false);
   const [editingFile, setEditingFile] = useState<File | null>(null);
   const [useEnhancedViewer] = useState(true);
-  const [activeTab, setActiveTab] = useState<'upload' | 'viewer'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'viewer' | 'history'>('upload');
   const [rigTaskId, setRigTaskId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
@@ -390,6 +391,16 @@ function App() {
                   <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent rounded-full animate-pulse"></span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 ${
+                  activeTab === 'history'
+                    ? 'border-brand-accent text-brand-light bg-brand-accent/10'
+                    : 'border-brand-light/10 text-brand-muted hover:text-brand-light hover:border-brand-light/20'
+                }`}
+              >
+                <Clock className="w-4 h-4" /> History
+              </button>
             </div>
           </div>
         </div>
@@ -451,30 +462,43 @@ function App() {
             {/* Workspace Section */}
             <div className="space-y-2">
               <span className="text-[9px] font-bold text-brand-muted uppercase tracking-wider px-1">Pracovní prostor</span>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all ${
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 border-2 transition-all ${
                     activeTab === 'upload'
                       ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
                       : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
                   }`}
                 >
-                  <Upload className="w-4 h-4" /> Studio
+                  <Upload className="w-4 h-4" />
+                  <span>Studio</span>
                 </button>
                 <button
                   onClick={() => { setActiveTab('viewer'); setMobileMenuOpen(false); }}
                   disabled={!hasModel}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all relative ${
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 border-2 transition-all relative ${
                     activeTab === 'viewer'
                       ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
                       : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
                   } disabled:opacity-30 disabled:cursor-not-allowed`}
                 >
-                  <Layout className="w-4 h-4" /> Viewer
+                  <Layout className="w-4 h-4" />
+                  <span>Viewer</span>
                   {hasModel && activeTab !== 'viewer' && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-brand-accent rounded-full animate-pulse"></span>
                   )}
+                </button>
+                <button
+                  onClick={() => { setActiveTab('history'); setMobileMenuOpen(false); }}
+                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 border-2 transition-all ${
+                    activeTab === 'history'
+                      ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
+                      : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  <span>History</span>
                 </button>
               </div>
             </div>
@@ -832,6 +856,15 @@ function App() {
               ) : mesh ? (
                 <ThreeViewer mesh={mesh} />
               ) : null}
+            </div>
+          </div>
+        )}
+
+        {/* HISTORY TAB */}
+        {activeTab === 'history' && (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fade-in">
+              <ModelHistory />
             </div>
           </div>
         )}
