@@ -1,4 +1,7 @@
-import { useState, useCallback, useRef } from 'react';
+{
+type: "file_change",
+fileName: "3D Konverter.zip/src/App.tsx",
+fullContent: `import { useState, useCallback, useRef } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import {
@@ -122,7 +125,7 @@ function App() {
       console.error('AI processing error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (!errorMessage.includes('cancelled')) {
-        toast.error(`Chyba: ${errorMessage}`, {
+        toast.error(\`Chyba: \${errorMessage}\`, {
           style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' }
         });
       }
@@ -237,11 +240,11 @@ function App() {
     }
     const filename = currentImage?.file.name.replace(/\.[^/.]+$/, '') || 'model';
     try {
-      if (format === 'obj') downloadFile(exportToOBJ(mesh), `${filename}.obj`, 'text/plain');
-      if (format === 'stl') downloadFile(exportToSTL(mesh), `${filename}.stl`, 'text/plain');
-      if (format === 'ply') downloadFile(exportToPLY(mesh), `${filename}.ply`, 'text/plain');
-      if (format === 'fbx') downloadFile(exportToFBX(mesh), `${filename}.fbx`, 'text/plain');
-      toast.success(`Export ${format.toUpperCase()} hotov`, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } });
+      if (format === 'obj') downloadFile(exportToOBJ(mesh), \`\${filename}.obj\`, 'text/plain');
+      if (format === 'stl') downloadFile(exportToSTL(mesh), \`\${filename}.stl\`, 'text/plain');
+      if (format === 'ply') downloadFile(exportToPLY(mesh), \`\${filename}.ply\`, 'text/plain');
+      if (format === 'fbx') downloadFile(exportToFBX(mesh), \`\${filename}.fbx\`, 'text/plain');
+      toast.success(\`Export \${format.toUpperCase()} hotov\`, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } });
     } catch {
       toast.error('Chyba exportu');
     }
@@ -322,42 +325,42 @@ function App() {
               <div className="flex bg-brand-dark/70 rounded-xl p-1.5 border border-brand-light/5 shadow-inner">
                 <button
                   onClick={() => setGenerationMode('image')}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                  className={\`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 \${
                     generationMode === 'image'
                       ? 'bg-brand-accent text-brand-light shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
-                  }`}
+                  }\`}
                 >
                   <Images className="w-4 h-4" /> Image → 3D
                 </button>
                 <button
                   onClick={() => setGenerationMode('text')}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                  className={\`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 \${
                     generationMode === 'text'
                       ? 'bg-brand-accent text-brand-light shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
-                  }`}
+                  }\`}
                 >
                   <Edit3 className="w-4 h-4" /> Text → 3D
                 </button>
                 <div className="w-px bg-brand-light/10 mx-1"></div>
                 <button
                   onClick={() => setGenerationMode('text-to-image')}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                  className={\`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 \${
                     generationMode === 'text-to-image'
                       ? 'bg-brand-accent text-brand-light shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
-                  }`}
+                  }\`}
                 >
                   <ImageIcon className="w-4 h-4" /> Text → Img
                 </button>
                 <button
                   onClick={() => setGenerationMode('image-to-image')}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
+                  className={\`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 \${
                     generationMode === 'image-to-image'
                       ? 'bg-brand-accent text-brand-light shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
-                  }`}
+                  }\`}
                 >
                   <Wand2 className="w-4 h-4" /> Img → Img
                 </button>
@@ -368,22 +371,22 @@ function App() {
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveTab('upload')}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 ${
+                className={\`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 \${
                   activeTab === 'upload'
                     ? 'border-brand-accent text-brand-light bg-brand-accent/10'
                     : 'border-brand-light/10 text-brand-muted hover:text-brand-light hover:border-brand-light/20'
-                }`}
+                }\`}
               >
                 <Upload className="w-4 h-4" /> Studio
               </button>
               <button
                 onClick={() => setActiveTab('viewer')}
                 disabled={!hasModel}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 relative ${
+                className={\`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border-2 relative \${
                   activeTab === 'viewer'
                     ? 'border-brand-accent text-brand-light bg-brand-accent/10'
                     : 'border-brand-light/10 text-brand-muted hover:text-brand-light hover:border-brand-light/20'
-                } disabled:opacity-30 disabled:cursor-not-allowed`}
+                } disabled:opacity-30 disabled:cursor-not-allowed\`}
               >
                 <Layout className="w-4 h-4" /> Viewer
                 {hasModel && activeTab !== 'viewer' && (
@@ -403,44 +406,44 @@ function App() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => { setGenerationMode('image'); setMobileMenuOpen(false); }}
-                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                  className={\`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border \${
                     generationMode === 'image'
                       ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
                       : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
-                  }`}
+                  }\`}
                 >
                   <Images className="w-5 h-5" />
                   <span>Image → 3D</span>
                 </button>
                 <button
                   onClick={() => { setGenerationMode('text'); setMobileMenuOpen(false); }}
-                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                  className={\`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border \${
                     generationMode === 'text'
                       ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
                       : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
-                  }`}
+                  }\`}
                 >
                   <Edit3 className="w-5 h-5" />
                   <span>Text → 3D</span>
                 </button>
                 <button
                   onClick={() => { setGenerationMode('text-to-image'); setMobileMenuOpen(false); }}
-                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                  className={\`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border \${
                     generationMode === 'text-to-image'
                       ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
                       : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
-                  }`}
+                  }\`}
                 >
                   <ImageIcon className="w-5 h-5" />
                   <span>Text → Img</span>
                 </button>
                 <button
                   onClick={() => { setGenerationMode('image-to-image'); setMobileMenuOpen(false); }}
-                  className={`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border ${
+                  className={\`py-3 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all border \${
                     generationMode === 'image-to-image'
                       ? 'bg-brand-accent text-brand-light shadow-glow border-brand-accent'
                       : 'bg-brand-dark/50 text-brand-muted border-brand-light/5 hover:border-brand-light/20'
-                  }`}
+                  }\`}
                 >
                   <Wand2 className="w-5 h-5" />
                   <span>Img → Img</span>
@@ -454,22 +457,22 @@ function App() {
               <div className="flex gap-2">
                 <button
                   onClick={() => { setActiveTab('upload'); setMobileMenuOpen(false); }}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all ${
+                  className={\`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all \${
                     activeTab === 'upload'
                       ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
                       : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
-                  }`}
+                  }\`}
                 >
                   <Upload className="w-4 h-4" /> Studio
                 </button>
                 <button
                   onClick={() => { setActiveTab('viewer'); setMobileMenuOpen(false); }}
                   disabled={!hasModel}
-                  className={`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all relative ${
+                  className={\`flex-1 py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 transition-all relative \${
                     activeTab === 'viewer'
                       ? 'border-brand-accent text-brand-accent bg-brand-accent/10'
                       : 'border-brand-light/10 text-brand-muted hover:border-brand-light/20'
-                  } disabled:opacity-30 disabled:cursor-not-allowed`}
+                  } disabled:opacity-30 disabled:cursor-not-allowed\`}
                 >
                   <Layout className="w-4 h-4" /> Viewer
                   {hasModel && activeTab !== 'viewer' && (
@@ -543,13 +546,13 @@ function App() {
                           <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-light/5 self-start sm:self-auto">
                             <button
                               onClick={() => setUploadMode('single')}
-                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'single' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
+                              className={\`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all \${uploadMode === 'single' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}\`}
                             >
                               Single
                             </button>
                             <button
                               onClick={() => setUploadMode('multi')}
-                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'multi' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
+                              className={\`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all \${uploadMode === 'multi' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}\`}
                             >
                               Multi-View
                             </button>
@@ -574,11 +577,11 @@ function App() {
                                 <button
                                   key={q}
                                   onClick={() => setQualityPreset(q as QualityPreset)}
-                                  className={`py-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                                  className={\`py-3 rounded-xl text-sm font-bold border-2 transition-all \${
                                     qualityPreset === q
                                       ? 'border-brand-accent bg-brand-accent/15 text-brand-accent shadow-glow scale-105'
                                       : 'border-brand-light/10 bg-brand-dark/30 text-brand-muted hover:border-brand-light/30 hover:text-brand-light hover:scale-102'
-                                  }`}
+                                  }\`}
                                 >
                                   {q.charAt(0).toUpperCase() + q.slice(1)}
                                 </button>
@@ -588,6 +591,20 @@ function App() {
 
                           {hasUploadedImage && (
                             <div className="flex flex-col gap-3 justify-center">
+                              {/* OPRAVA: Přidán náhled aktuálního aktivního vstupu (editovaného obrázku) */}
+                              {uploadMode === 'single' && currentImage && (
+                                <div className="w-full aspect-video bg-black/20 rounded-xl border border-brand-light/10 overflow-hidden relative mb-2 group">
+                                  <img 
+                                    src={currentImage.url} 
+                                    alt="Aktivni vstup" 
+                                    className="w-full h-full object-contain" 
+                                  />
+                                  <div className="absolute top-2 right-2 bg-brand-accent px-2 py-1 rounded text-[10px] font-bold shadow-lg">
+                                    AKTIVNÍ VSTUP
+                                  </div>
+                                </div>
+                              )}
+                              
                               <button
                                 onClick={handleOpenEditor}
                                 disabled={isProcessing}
@@ -832,3 +849,5 @@ function App() {
 }
 
 export default App;
+`
+}
