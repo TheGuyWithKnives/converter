@@ -213,7 +213,23 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       ctx.setLineDash([]);
       ctx.restore();
     }
-  }, [layers, canvasWidth, canvasHeight, tool, selectionRect]);
+
+    if (tool === 'clone' && cloneSource) {
+      ctx.save();
+      ctx.strokeStyle = '#FF003C';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cloneSource.x, cloneSource.y, brush.size / 2 + 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cloneSource.x - 8, cloneSource.y);
+      ctx.lineTo(cloneSource.x + 8, cloneSource.y);
+      ctx.moveTo(cloneSource.x, cloneSource.y - 8);
+      ctx.lineTo(cloneSource.x, cloneSource.y + 8);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }, [layers, canvasWidth, canvasHeight, tool, selectionRect, cloneSource, brush.size]);
 
   useEffect(() => {
     compositeAndRender();
@@ -840,6 +856,11 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
           <span>Nastroj: {tool}</span>
           <span>Vrstva: {layers.find(l => l.id === activeLayerId)?.name || '-'}</span>
           <span>Historie: {historyIndex + 1}/{history.length}</span>
+          {tool === 'clone' && (
+            <span className="text-yellow-400 font-bold">
+              {cloneSource ? 'Zdroj nastaven - kreslete pro klonovani' : 'Alt+klik = nastavit zdroj'}
+            </span>
+          )}
         </div>
         <div className="text-[10px] text-[#888]">
           Ctrl+Z = Zpet | Ctrl+Y = Vpred | Kolecko = Zoom

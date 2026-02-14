@@ -4,12 +4,12 @@ import { meshyService } from '../services/meshyService';
 
 interface RemeshControlProps {
   modelUrl: string | null;
-  onRemeshComplete: (url: string) => void;
+  onRemeshed: (url: string) => void;
 }
 
 export const RemeshControl: React.FC<RemeshControlProps> = ({
   modelUrl,
-  onRemeshComplete
+  onRemeshed
 }) => {
   const [isRemeshing, setIsRemeshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export const RemeshControl: React.FC<RemeshControlProps> = ({
         const task = await meshyService.getTaskStatus(taskId);
         
         if (task.status === 'SUCCEEDED' && task.model_urls?.glb) {
-          onRemeshComplete(task.model_urls.glb);
+          onRemeshed(task.model_urls.glb);
           setIsRemeshing(false);
         } else if (task.status === 'FAILED') {
           setError(task.error || 'Remeshing failed');

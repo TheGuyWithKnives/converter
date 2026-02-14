@@ -23,12 +23,13 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
   const animationFrameRef = useRef<number | null>(null);
   const gridRef = useRef<THREE.GridHelper | null>(null);
   const boundingBoxRef = useRef<THREE.BoxHelper | null>(null);
+  const lightsRef = useRef<THREE.Light[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(true);
   const [showWireframe, setShowWireframe] = useState(false);
-  const [showLights, setShowLights] = useState(false);
+  const [showLights, setShowLights] = useState(true);
   const [showBoundingBox, setShowBoundingBox] = useState(false);
 
   const resetCamera = useCallback(() => {
@@ -114,6 +115,8 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
     const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
     fillLight.position.set(-5, 3, -3);
     scene.add(fillLight);
+
+    lightsRef.current = [ambientLight, keyLight, fillLight];
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
     gridHelper.visible = showGrid;
@@ -256,6 +259,12 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
       }
     }
   }, [showBoundingBox]);
+
+  useEffect(() => {
+    lightsRef.current.forEach(light => {
+      light.visible = showLights;
+    });
+  }, [showLights]);
 
   return (
     <div className="w-full h-full flex">

@@ -4,12 +4,12 @@ import { meshyService } from '../services/meshyService';
 
 interface RiggingControlProps {
   modelUrl: string | null;
-  onRiggingComplete: (url: string | null) => void; // Update type to allow null
+  onRigged: (url: string, taskId?: string) => void;
 }
 
 export const RiggingControl: React.FC<RiggingControlProps> = ({
   modelUrl,
-  onRiggingComplete
+  onRigged
 }) => {
   const [isRigging, setIsRigging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export const RiggingControl: React.FC<RiggingControlProps> = ({
         
         if (task.status === 'SUCCEEDED' && task.model_urls?.glb) {
           setRiggedModelUrl(task.model_urls.glb);
-          onRiggingComplete(task.model_urls.glb);
+          onRigged(task.model_urls.glb, taskId);
           setIsRigging(false);
         } else if (task.status === 'FAILED') {
           setError(task.error || 'Rigging failed');
@@ -46,10 +46,9 @@ export const RiggingControl: React.FC<RiggingControlProps> = ({
     }
   };
 
-  // FIX: Funkce pro odstranění kostry
   const handleRemoveRigging = () => {
-      setRiggedModelUrl(null);
-      onRiggingComplete(null);
+    setRiggedModelUrl(null);
+    setError(null);
   };
 
   if (!modelUrl) return null;
@@ -107,8 +106,8 @@ export const RiggingControl: React.FC<RiggingControlProps> = ({
           {isRigging ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Rigging Character...
-            </Loader2>
+              Generuji kostru...
+            </>
           ) : (
             'Generate Skeleton (Rig)'
           )}

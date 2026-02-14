@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Gamepad2, MousePointer2, Music, Volume2, VolumeX } from 'lucide-react';
+import { Gamepad2, MousePointer2, Volume2, VolumeX, X as XIcon } from 'lucide-react';
 
-export const LoadingEntertainment: React.FC = () => {
+interface LoadingEntertainmentProps {
+  progress?: number;
+  message?: string;
+  onCancel?: () => void;
+  cancellable?: boolean;
+}
+
+export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
+  progress = 0,
+  message = '',
+  onCancel,
+  cancellable = false,
+}) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [particles, setParticles] = useState<{x: number, y: number, vx: number, vy: number, color: string}[]>([]);
@@ -102,10 +114,11 @@ export const LoadingEntertainment: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // FIX: Výpočet souřadnic relativně ke canvasu, ne k oknu
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
 
     let caught = 0;
     setParticles(prev => {
@@ -125,40 +138,66 @@ export const LoadingEntertainment: React.FC = () => {
     }
   };
 
-  return (
-    <div className="w-full h-full relative overflow-hidden rounded-xl bg-black/40 backdrop-blur-sm border border-white/10">
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-        <Gamepad2 className="w-5 h-5 text-purple-400" />
-        <span className="text-white font-medium">Catch the Lights</span>
-      </div>
-      
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
-         {/* Tlačítko pro hudbu */}
-         <button 
-          onClick={toggleMusic}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs text-white/80"
-        >
-          {isPlayingMusic ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          {isPlayingMusic ? 'Music On' : 'Music Off'}
-        </button>
+  const progressPercent = Math.round(progress * 100);
 
-        <div className="px-3 py-1 rounded-full bg-white/10 text-white font-bold">
-          Score: {score}
+  return (
+    <div className="w-full max-w-2xl mx-auto flex flex-col gap-6 items-center px-4">
+      <div className="w-full relative overflow-hidden rounded-xl bg-black/40 backdrop-blur-sm border border-white/10" style={{ height: '360px' }}>
+        <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
+          <Gamepad2 className="w-5 h-5 text-brand-accent" />
+          <span className="text-white font-medium text-sm">Chytni svetylka</span>
+        </div>
+
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-3">
+          <button
+            onClick={toggleMusic}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-xs text-white/80"
+          >
+            {isPlayingMusic ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          <div className="px-3 py-1 rounded-full bg-white/10 text-white font-bold text-sm">
+            {score}
+          </div>
+        </div>
+
+        <canvas
+          ref={canvasRef}
+          onClick={handleCanvasClick}
+          className="w-full h-full cursor-crosshair touch-none"
+        />
+
+        <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
+          <p className="text-white/40 text-xs flex items-center justify-center gap-2">
+            <MousePointer2 className="w-4 h-4" />
+            Klikej na svetylka, zatimco cekas!
+          </p>
         </div>
       </div>
 
-      <canvas
-        ref={canvasRef}
-        onClick={handleCanvasClick}
-        className="w-full h-full cursor-crosshair touch-none"
-      />
-      
-      <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-        <p className="text-white/40 text-sm flex items-center justify-center gap-2">
-          <MousePointer2 className="w-4 h-4" />
-          Click on the lights while you wait!
-        </p>
+      <div className="w-full space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-brand-muted font-medium">{message || 'Zpracovavam...'}</span>
+          <span className="text-brand-light font-bold">{progressPercent}%</span>
+        </div>
+        <div className="w-full h-2 bg-brand-dark rounded-full overflow-hidden border border-brand-border">
+          <div
+            className="h-full bg-gradient-to-r from-brand-accent to-brand-accent/70 rounded-full transition-all duration-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+        {cancellable && onCancel && (
+          <button
+            onClick={onCancel}
+            className="w-full py-2.5 bg-brand-dark border border-brand-border hover:border-red-400/50 rounded-xl text-sm font-bold text-brand-muted hover:text-red-400 transition-all flex items-center justify-center gap-2"
+          >
+            <XIcon className="w-4 h-4" />
+            Zrusit
+          </button>
+        )}
       </div>
     </div>
   );
 };
+
+export default LoadingEntertainment;

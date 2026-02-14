@@ -669,7 +669,10 @@ function App() {
                       </div>
                     ) : generationMode === 'image-to-image' ? (
                       <div className="py-4">
-                        <ImageToImageGenerator onImageReady={handleAiImageReady} />
+                        <ImageToImageGenerator
+                          onModelGenerated={handleTextTo3DReady}
+                          onError={(msg) => toast.error(msg, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } })}
+                        />
                       </div>
                     ) : null}
                   </div>

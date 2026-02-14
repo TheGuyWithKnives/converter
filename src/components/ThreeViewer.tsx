@@ -89,3 +89,5 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({
     </div>
   );
 };
+
+export default ThreeViewer;
