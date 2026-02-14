@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Undo, Redo, Check, X, ZoomIn, ZoomOut,
   RotateCw, FlipHorizontal, FlipVertical,
@@ -25,7 +26,7 @@ interface ImageEditorProps {
 }
 
 let layerIdCounter = 0;
-function nextLayerId() { return \`layer_\${++layerIdCounter}\`; }
+function nextLayerId() { return `layer_${++layerIdCounter}`; }
 
 export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditorProps) {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,6 +62,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
   const [cropStart, setCropStart] = useState<Point | null>(null);
   const [cropEnd, setCropEnd] = useState<Point | null>(null);
   const [cloneSource, setCloneSource] = useState<Point | null>(null);
+  
   // OPRAVA: Přidán ref pro uložení offsetu při klonování
   const cloneOffset = useRef<Point | null>(null);
   
@@ -451,7 +453,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     const newCanvas = createLayer(canvasWidth, canvasHeight);
     const newLayer: Layer = {
       id: nextLayerId(),
-      name: \`Vrstva \${layers.length + 1}\`,
+      name: `Vrstva ${layers.length + 1}`,
       canvas: newCanvas,
       visible: true,
       opacity: 1,
@@ -481,7 +483,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     newCtx.drawImage(source.canvas, 0, 0);
     const newLayer: Layer = {
       id: nextLayerId(),
-      name: \`\${source.name} (kopie)\`,
+      name: `${source.name} (kopie)`,
       canvas: newCanvas,
       visible: true,
       opacity: source.opacity,
@@ -530,7 +532,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     const ctx = layer.canvas.getContext('2d');
     if (!ctx) return;
     applyFilter(ctx, filter, intensity);
-    saveHistorySnapshot(\`Filtr: \${filter}\`);
+    saveHistorySnapshot(`Filtr: ${filter}`);
     compositeAndRender();
     setShowFilters(false);
   }, [getActiveLayer, saveHistorySnapshot, compositeAndRender]);
@@ -795,7 +797,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             style={{
-              transform: \`translate(\${panX}px, \${panY}px) scale(\${zoom})\`,
+              transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
               transformOrigin: 'center center',
               imageRendering: zoom > 2 ? 'pixelated' : 'auto',
               boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
@@ -853,6 +855,4 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       )}
     </div>
   );
-}
-`
 }
