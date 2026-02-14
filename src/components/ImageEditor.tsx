@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+{
+type: "file_change",
+fileName: "3D Konverter.zip/src/components/ImageEditor.tsx",
+fullContent: `import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Undo, Redo, Check, X, ZoomIn, ZoomOut,
   RotateCw, FlipHorizontal, FlipVertical,
@@ -26,7 +29,7 @@ interface ImageEditorProps {
 }
 
 let layerIdCounter = 0;
-function nextLayerId() { return `layer_${++layerIdCounter}`; }
+function nextLayerId() { return \`layer_\${++layerIdCounter}\`; }
 
 export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditorProps) {
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,6 +65,9 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
   const [cropStart, setCropStart] = useState<Point | null>(null);
   const [cropEnd, setCropEnd] = useState<Point | null>(null);
   const [cloneSource, setCloneSource] = useState<Point | null>(null);
+  // OPRAVA: Přidán ref pro uložení offsetu při klonování
+  const cloneOffset = useRef<Point | null>(null);
+  
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   const [showFilters, setShowFilters] = useState(false);
@@ -263,6 +269,11 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       if (cloneSource) {
         setIsDrawing(true);
         setLastPoint(point);
+        // OPRAVA: Vypočítáme fixní offset mezi aktuálním bodem (kam kreslím) a zdrojem (odkud beru)
+        cloneOffset.current = {
+            x: point.x - cloneSource.x,
+            y: point.y - cloneSource.y
+        };
       }
     } else if (tool === 'fill') {
       floodFill(ctx, point.x, point.y, brush.color);
@@ -323,11 +334,12 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       applyBlurBrush(ctx, point.x, point.y, brush.size / 2, 1);
       setLastPoint(point);
       compositeAndRender();
-    } else if (tool === 'clone' && lastPoint && cloneSource) {
-      const dx = point.x - lastPoint.x;
-      const dy = point.y - lastPoint.y;
-      const sourceX = cloneSource.x + (point.x - lastPoint.x);
-      const sourceY = cloneSource.y + (point.y - lastPoint.y);
+    } else if (tool === 'clone' && lastPoint && cloneSource && cloneOffset.current) {
+      // OPRAVA: Používáme fixní offset pro výpočet zdroje
+      // Aktuální pozice štětce (point) mínus offset nám dá odpovídající bod ve zdroji
+      const sourceX = point.x - cloneOffset.current.x;
+      const sourceY = point.y - cloneOffset.current.y;
+      
       const r = brush.size / 2;
       try {
         const srcData = ctx.getImageData(
@@ -382,6 +394,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       saveHistorySnapshot('Rozmazani');
     } else if (tool === 'clone') {
       saveHistorySnapshot('Klonovani');
+      cloneOffset.current = null; // Reset offsetu
     } else if (tool === 'shape' && shapeStart && shapePreviewRef.current) {
       const layer = getActiveLayer();
       if (layer) {
@@ -442,7 +455,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     const newCanvas = createLayer(canvasWidth, canvasHeight);
     const newLayer: Layer = {
       id: nextLayerId(),
-      name: `Vrstva ${layers.length + 1}`,
+      name: \`Vrstva \${layers.length + 1}\`,
       canvas: newCanvas,
       visible: true,
       opacity: 1,
@@ -472,7 +485,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     newCtx.drawImage(source.canvas, 0, 0);
     const newLayer: Layer = {
       id: nextLayerId(),
-      name: `${source.name} (kopie)`,
+      name: \`\${source.name} (kopie)\`,
       canvas: newCanvas,
       visible: true,
       opacity: source.opacity,
@@ -521,7 +534,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
     const ctx = layer.canvas.getContext('2d');
     if (!ctx) return;
     applyFilter(ctx, filter, intensity);
-    saveHistorySnapshot(`Filtr: ${filter}`);
+    saveHistorySnapshot(\`Filtr: \${filter}\`);
     compositeAndRender();
     setShowFilters(false);
   }, [getActiveLayer, saveHistorySnapshot, compositeAndRender]);
@@ -786,7 +799,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             style={{
-              transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+              transform: \`translate(\${panX}px, \${panY}px) scale(\${zoom})\`,
               transformOrigin: 'center center',
               imageRendering: zoom > 2 ? 'pixelated' : 'auto',
               boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
@@ -844,4 +857,6 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
       )}
     </div>
   );
+}
+`
 }
