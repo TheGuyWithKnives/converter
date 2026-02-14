@@ -6,11 +6,13 @@ import { meshyService } from '../services/meshyService';
 interface ImageToImageGeneratorProps {
   onModelGenerated: (url: string) => void;
   onError: (error: string) => void;
+  onSendToMultiView?: (file: File, url: string) => void;
 }
 
 export const ImageToImageGenerator: React.FC<ImageToImageGeneratorProps> = ({
   onModelGenerated,
-  onError
+  onError,
+  onSendToMultiView
 }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -144,28 +146,39 @@ export const ImageToImageGenerator: React.FC<ImageToImageGeneratorProps> = ({
         </div>
       </div>
 
-      <button
-        onClick={handleGenerate}
-        // FIX: Tlačítko je aktivní, pokud máme alespoň obrázek
-        disabled={isGenerating || !selectedImage}
-        className={`w-full py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all ${
-          isGenerating || !selectedImage
-            ? 'bg-white/10 text-white/40 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg hover:shadow-blue-500/25'
-        }`}
-      >
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Generating 3D Model...
-          </>
-        ) : (
-          <>
-            <ImageIcon className="w-5 h-5" />
-            Generate 3D Model
-          </>
+      <div className="flex gap-3">
+        <button
+          onClick={handleGenerate}
+          disabled={isGenerating || !selectedImage}
+          className={`flex-1 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all ${
+            isGenerating || !selectedImage
+              ? 'bg-white/10 text-white/40 cursor-not-allowed'
+              : 'bg-gradient-to-r from-brand-accent to-brand-accent/80 hover:from-brand-accent/90 hover:to-brand-accent/70 text-white shadow-lg hover:shadow-brand-accent/25'
+          }`}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generuji 3D model...
+            </>
+          ) : (
+            <>
+              <ImageIcon className="w-5 h-5" />
+              Generovat 3D
+            </>
+          )}
+        </button>
+
+        {onSendToMultiView && selectedImage && imagePreview && !isGenerating && (
+          <button
+            onClick={() => onSendToMultiView(selectedImage, imagePreview)}
+            className="px-5 py-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all border-2 border-brand-accent/30 text-brand-accent hover:bg-brand-accent/10 hover:border-brand-accent/60"
+          >
+            <Upload className="w-4 h-4" />
+            Multi-View
+          </button>
         )}
-      </button>
+      </div>
     </div>
   );
 };

@@ -672,6 +672,15 @@ function App() {
                         <ImageToImageGenerator
                           onModelGenerated={handleTextTo3DReady}
                           onError={(msg) => toast.error(msg, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } })}
+                          onSendToMultiView={(file, url) => {
+                            setCurrentImage({ file, url });
+                            setGenerationMode('image');
+                            setUploadMode('single');
+                            toast.success('Obrazek prenesen do Multi-View', {
+                              style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
+                              iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+                            });
+                          }}
                         />
                       </div>
                     ) : null}
