@@ -1,5 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Gamepad2, MousePointer2, Volume2, VolumeX, X as XIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Gamepad2, MousePointer2, Volume2, VolumeX, X as XIcon, Trophy } from 'lucide-react';
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  color: string;
+  radius: number;
+  pulse: number;
+}
 
 interface LoadingEntertainmentProps {
   progress?: number;
@@ -8,6 +18,9 @@ interface LoadingEntertainmentProps {
   cancellable?: boolean;
 }
 
+const PREVIOUS_SCORE_KEY = 'loading-game-last-score';
+const HIGH_SCORE_KEY = 'loading-game-high-score';
+
 export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
   progress = 0,
   message = '',
@@ -15,17 +28,24 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
   cancellable = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [score, setScore] = useState(0);
-  const [particles, setParticles] = useState<{x: number, y: number, vx: number, vy: number, color: string}[]>([]);
-  
-  // Audio state
+  const particlesRef = useRef<Particle[]>([]);
+  const scoreRef = useRef(0);
+  const [displayScore, setDisplayScore] = useState(0);
+  const [lastScore] = useState(() => {
+    const saved = localStorage.getItem(PREVIOUS_SCORE_KEY);
+    return saved ? parseInt(saved, 10) : null;
+  });
+  const [highScore] = useState(() => {
+    const saved = localStorage.getItem(HIGH_SCORE_KEY);
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const animationRef = useRef<number>(0);
 
-  // Initialize Audio
   useEffect(() => {
-    // FIX: Cesta k hudbě. Ujistěte se, že soubor existuje.
-    audioRef.current = new Audio('/assets/audio/loading-music.mp3'); 
+    audioRef.current = new Audio('/assets/audio/loading-music.mp3');
     audioRef.current.loop = true;
     audioRef.current.volume = 0.3;
 
@@ -37,13 +57,25 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      const finalScore = scoreRef.current;
+      if (finalScore > 0) {
+        localStorage.setItem(PREVIOUS_SCORE_KEY, finalScore.toString());
+        const prevHigh = parseInt(localStorage.getItem(HIGH_SCORE_KEY) || '0', 10);
+        if (finalScore > prevHigh) {
+          localStorage.setItem(HIGH_SCORE_KEY, finalScore.toString());
+        }
+      }
+    };
+  }, []);
+
   const toggleMusic = () => {
     if (!audioRef.current) return;
     if (isPlayingMusic) {
       audioRef.current.pause();
     } else {
-      // Prohlížeče vyžadují interakci uživatele pro spuštění audia
-      audioRef.current.play().catch(e => console.log("Audio play failed (interaction needed first):", e));
+      audioRef.current.play().catch(() => {});
     }
     setIsPlayingMusic(!isPlayingMusic);
   };
@@ -51,7 +83,7 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -65,52 +97,69 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
     resize();
     window.addEventListener('resize', resize);
 
-    let animationId: number;
     const loop = () => {
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillStyle = 'rgba(0,0,0,0.12)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      setParticles(prev => {
-        const next = prev.map(p => ({
-          ...p,
-          x: p.x + p.vx,
-          y: p.y + p.vy
-        })).filter(p => 
-          p.x > 0 && p.x < canvas.width && 
-          p.y > 0 && p.y < canvas.height
-        );
+      const particles = particlesRef.current;
 
-        if (Math.random() < 0.1) {
-          next.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 2,
-            vy: (Math.random() - 0.5) * 2,
-            color: `hsl(${Math.random() * 360}, 70%, 50%)`
-          });
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.pulse += 0.05;
+
+        if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) {
+          particles.splice(i, 1);
+          continue;
         }
 
-        next.forEach(p => {
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-          ctx.fillStyle = p.color;
-          ctx.fill();
+        const glow = Math.sin(p.pulse) * 0.3 + 0.7;
+        const r = p.radius * glow;
+
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, r * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fill();
+      }
+
+      if (Math.random() < 0.12 && particles.length < 40) {
+        const hue = Math.random() * 60 + 170;
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: (Math.random() - 0.5) * 1.8,
+          color: `hsl(${hue}, 80%, 60%)`,
+          radius: 4 + Math.random() * 3,
+          pulse: Math.random() * Math.PI * 2,
         });
+      }
 
-        return next;
-      });
-
-      animationId = requestAnimationFrame(loop);
+      animationRef.current = requestAnimationFrame(loop);
     };
     loop();
 
     return () => {
       window.removeEventListener('resize', resize);
-      cancelAnimationFrame(animationId);
+      cancelAnimationFrame(animationRef.current);
     };
   }, []);
 
-  const handleCanvasClick = (e: React.MouseEvent) => {
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -120,23 +169,25 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
+    const particles = particlesRef.current;
     let caught = 0;
-    setParticles(prev => {
-      const next = prev.filter(p => {
-        const dist = Math.sqrt(Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2));
-        if (dist < 30) {
-          caught++;
-          return false;
-        }
-        return true;
-      });
-      return next;
-    });
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 30) {
+        caught++;
+        particles.splice(i, 1);
+      }
+    }
 
     if (caught > 0) {
-      setScore(s => s + caught);
+      scoreRef.current += caught;
+      setDisplayScore(scoreRef.current);
     }
-  };
+  }, []);
 
   const progressPercent = Math.round(progress * 100);
 
@@ -156,10 +207,27 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
             {isPlayingMusic ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
 
-          <div className="px-3 py-1 rounded-full bg-white/10 text-white font-bold text-sm">
-            {score}
+          <div className="px-3 py-1 rounded-full bg-white/10 text-white font-bold text-sm tabular-nums">
+            {displayScore}
           </div>
         </div>
+
+        {(lastScore !== null || highScore > 0) && (
+          <div className="absolute top-12 right-4 z-10 flex flex-col gap-1">
+            {lastScore !== null && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 text-white/50 text-xs">
+                <span>Minule:</span>
+                <span className="font-bold text-white/70 tabular-nums">{lastScore}</span>
+              </div>
+            )}
+            {highScore > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-accent/10 text-brand-accent/70 text-xs">
+                <Trophy className="w-3 h-3" />
+                <span className="font-bold tabular-nums">{highScore}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         <canvas
           ref={canvasRef}
