@@ -45,9 +45,13 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
   const animationRef = useRef<number>(0);
 
   useEffect(() => {
-    audioRef.current = new Audio('/assets/audio/loading-music.mp3');
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.3;
+    try {
+      audioRef.current = new Audio('/assets/audio/loading-music.mp3');
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.3;
+    } catch (e) {
+      console.log('Audio file not found');
+    }
 
     return () => {
       if (audioRef.current) {
@@ -72,12 +76,16 @@ export const LoadingEntertainment: React.FC<LoadingEntertainmentProps> = ({
 
   const toggleMusic = () => {
     if (!audioRef.current) return;
-    if (isPlayingMusic) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(() => {});
+    try {
+      if (isPlayingMusic) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(() => {});
+      }
+      setIsPlayingMusic(!isPlayingMusic);
+    } catch (e) {
+      console.log('Audio play error');
     }
-    setIsPlayingMusic(!isPlayingMusic);
   };
 
   useEffect(() => {
