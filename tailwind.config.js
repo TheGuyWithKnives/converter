@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#19013d',        // Tmavší okraj (line numbers background)
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (editor canvas)
-        surface: '#2e0a61',     // Active line highlight
-        border: '#461685',      // Jemné oddělovače
-        // Funkční barvy (všechny mají svůj význam)
-        func: '#00b2bf',        // Azurová (Funkce/Akce)
-        keyword: '#d35470',     // Růžová (Klíčová slova/Selekce)
-        string: '#E76F4B',      // Oranžová (Hodnoty/Parametry)
-        light: '#F8F8F2',       // Klasická "code" bílá
-        muted: '#6272A4',
+          dark: '#0E0024',        // Hluboká noc
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (voda/obloha)
+        surface: '#3E1066',     // Mraky (hover panely)
+        border: '#d3547066',    // Průhledná růžová
+        // Zde definujeme barvy pro gradienty
+        sunsetFrom: '#d35470',  // Růžová (začátek tlačítka)
+        sunsetTo: '#E76F4B',    // Oranžová (konec tlačítka)
+        water: '#00b2bf',       // Azurová (odkazy, info text)
+        light: '#FFE4E6',       // Narůžovělá bílá (velmi teplá)
+        muted: '#9CA3AF',
         }
       },
       fontFamily: {
