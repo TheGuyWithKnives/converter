@@ -8,17 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#150133',        // Tmavší stín fialové
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (střední)
-        surface: '#320473',     // Světlejší fialová (vrch)
-        highlight: '#4c1d95',   // Nej světlejší fialová (hover)
-        // Laser
-        laser: '#00b2bf',       // Azurová (pouze 1px border, ikonky, text linky)
-        'laser-dim': '#00b2bf33', // Průhledná azurová pro pozadí tabulky
-        // Funkční barvy
-        destructive: '#E76F4B', // Oranžová (Delete / Cancel)
-        light: '#FFFFFF',       // Čistá bílá (maximální kontrast)
-        muted: '#a5b4fc',
+          dark: '#19013d',        // Tmavší okraj (line numbers background)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (editor canvas)
+        surface: '#2e0a61',     // Active line highlight
+        border: '#461685',      // Jemné oddělovače
+        // Funkční barvy (všechny mají svůj význam)
+        func: '#00b2bf',        // Azurová (Funkce/Akce)
+        keyword: '#d35470',     // Růžová (Klíčová slova/Selekce)
+        string: '#E76F4B',      // Oranžová (Hodnoty/Parametry)
+        light: '#F8F8F2',       // Klasická "code" bílá
+        muted: '#6272A4',
         }
       },
       fontFamily: {
