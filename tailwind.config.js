@@ -10,9 +10,9 @@ export default {
         brand: {
           dark: '#21024F',
           panel: '#E76F4B',
-          surface: '#131B2E',
-          border: '#1E293B',
-          accent: '#FF003C',
+          surface: '#21024F',
+          border: '#E76F4B',
+          accent: '#E76F4B',
           'accent-soft': '#FF003C1A',
           light: '#F4F4F4',
           muted: '#94A3B8',
