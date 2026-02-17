@@ -8,18 +8,19 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0e0121',
-        panel: '#21024F',
-        surface: '#36067a',
-        border: '#4a109e',
-        accent: '#00b2bf',
-        'accent-soft': '#00b2bf26',
-        light: '#F4F4F4',
-        muted: '#b8a6d9', 
-        'muted-soft': '#5e4b85',
-        // Doplňkové barvy pro jiné prvky (např. errory nebo secondary buttons)
-        secondary: '#E76F4B',
-        highlight: '#d35470',
+          dark: '#050505',        // Téměř černá
+        panel: '#0F0B15',       // Velmi tmavá s nádechem fialové
+        surface: '#1A1525',     // O něco světlejší
+        border: '#21024F',      // TVOJE HLAVNÍ FIALOVÁ (rámečky, oddělovače)
+        accent: '#E76F4B',      // Tvoje oranžová (hlavní tlačítka)
+        'accent-soft': '#E76F4B26', 
+        light: '#EEEEEE',
+        muted: '#94A3B8',
+        'muted-soft': '#334155',
+        // Speciální klíče pro gradienty nebo detaily
+        primary: '#21024F',     // Pro nadpisy nebo loga
+        cyan: '#00b2bf',        // Pro info prvky
+        pink: '#d35470',
         }
       },
       fontFamily: {
