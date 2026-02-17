@@ -4,29 +4,19 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
+   theme: {
     extend: {
       colors: {
         brand: {
-         // --- ZÁKLAD ---
-        dark: '#0a0118',        // Téměř černá s fialovým nádechem (pozadí body)
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (karty, sidebar, hlavička)
-        surface: '#2d0363',     // O něco světlejší fialová (pro hover na kartách)
-        border: '#3e1075',      // Tmavě fialové ohraničení (aby nerušilo)
-        // --- HLAVNÍ AKCE ---
-        accent: '#00b2bf',      // Azurová (Hlavní tlačítka, aktivní taby)
-        'accent-soft': '#00b2bf1A', // Jemná záře pod tlačítky
-        secondary: '#E76F4B',   // Oranžová (Call to Action - např. "Koupit PRO")
-        tertiary: '#d35470',    // Růžová (Srdíčka, mazání, speciální tagy)
-        // --- "JISKRA" (ŽLUTÁ) ---
-        // Použij jen na maličkosti: loading spinner, hvězdička hodnocení, 
-        // focus rámeček inputu, nebo odznak "NOVÉ"
-        spark: '#FACC15',       
-        'spark-soft': '#FACC151A',
-        // --- TEXT ---
-        light: '#F8FAFC',       // Bílý text
-        muted: '#94A3B8',       // Šedý text
-        'muted-soft': '#475569',
+          dark: '#0B0C10',
+          panel: '#0F172A',
+          surface: '#131B2E',
+          border: '#1E293B',
+          accent: '#FF003C',
+          'accent-soft': '#FF003C1A',
+          light: '#F4F4F4',
+          muted: '#94A3B8',
+          'muted-soft': '#64748B',
         }
       },
       fontFamily: {
