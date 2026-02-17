@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0E0024',        // Hluboká noc
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (voda/obloha)
-        surface: '#3E1066',     // Mraky (hover panely)
-        border: '#d3547066',    // Průhledná růžová
-        // Zde definujeme barvy pro gradienty
-        sunsetFrom: '#d35470',  // Růžová (začátek tlačítka)
-        sunsetTo: '#E76F4B',    // Oranžová (konec tlačítka)
-        water: '#00b2bf',       // Azurová (odkazy, info text)
-        light: '#FFE4E6',       // Narůžovělá bílá (velmi teplá)
-        muted: '#9CA3AF',
+          dark: '#000000',        // Černá (pro maximální kontrast)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
+        surface: '#21024F',     // Žádná změna barvy, jen border
+        // Barvy pro "nálepky" a tlačítka
+        primary: '#00b2bf',     // Azurová (tlačítko 1)
+        secondary: '#E76F4B',   // Oranžová (tlačítko 2)
+        tertiary: '#d35470',    // Růžová (badge)
+        border: '#000000',      // Černé tlusté ohraničení prvků uvnitř fialové
+        light: '#FFFFFF',       // Bílá
+        muted: '#C084FC',
         }
       },
       fontFamily: {
