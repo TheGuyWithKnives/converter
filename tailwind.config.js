@@ -8,13 +8,13 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#050505',
-  panel: '#0A0A0A',
-  surface: '#111111',
-  border: '#222222',
-  accent: '#00FFA3',
-  'accent-soft': '#00FFA31A',
-  light: '#FFFFFF',
+          dark: '#0D0D0D',
+  panel: '#171717',
+  surface: '#262626',
+  border: '#404040',
+  accent: '#10A37F',
+  'accent-soft': '#10A37F1A',
+  light: '#FAFAFA',
   muted: '#A3A3A3',
   'muted-soft': '#737373',
         }
