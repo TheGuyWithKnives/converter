@@ -8,17 +8,25 @@ export default {
     extend: {
       colors: {
         brand: {
-         dark: '#1E0045',        // Hodně tmavá fialová
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#380B70',     // Světlejší fialová
-        border: '#FDE047',      // NOVÁ ŽLUTÁ (Pastelová žlutá - velmi stylové linky)
-        accent: '#E76F4B',      // Tvoje oranžová (primární akce)
-        highlight: '#FDE047',   // Žlutá (sekundární akce / hover efekty)
-        'highlight-soft': '#FDE04733',
-        cyan: '#00b2bf',        // Pro grafy nebo data
-        pink: '#d35470',        // Pro errory nebo smazání
-        light: '#FFFFFF',
-        muted: '#E9D5FF',
+         // --- ZÁKLAD ---
+        dark: '#0a0118',        // Téměř černá s fialovým nádechem (pozadí body)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (karty, sidebar, hlavička)
+        surface: '#2d0363',     // O něco světlejší fialová (pro hover na kartách)
+        border: '#3e1075',      // Tmavě fialové ohraničení (aby nerušilo)
+        // --- HLAVNÍ AKCE ---
+        accent: '#00b2bf',      // Azurová (Hlavní tlačítka, aktivní taby)
+        'accent-soft': '#00b2bf1A', // Jemná záře pod tlačítky
+        secondary: '#E76F4B',   // Oranžová (Call to Action - např. "Koupit PRO")
+        tertiary: '#d35470',    // Růžová (Srdíčka, mazání, speciální tagy)
+        // --- "JISKRA" (ŽLUTÁ) ---
+        // Použij jen na maličkosti: loading spinner, hvězdička hodnocení, 
+        // focus rámeček inputu, nebo odznak "NOVÉ"
+        spark: '#FACC15',       
+        'spark-soft': '#FACC151A',
+        // --- TEXT ---
+        light: '#F8FAFC',       // Bílý text
+        muted: '#94A3B8',       // Šedý text
+        'muted-soft': '#475569',
         }
       },
       fontFamily: {
