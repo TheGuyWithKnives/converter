@@ -8,18 +8,20 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#1a053a',        // Temně fialová (teplejší odstín pro pozadí)
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (všechny hlavní prvky UI)
-        surface: '#2c0466',     // Jemný přechod pro aktivní prvky
-        border: '#4a154b',      // Tlumené ohraničení (do ruda/fialova)
-        accent: '#E76F4B',      // Tvoje oranžová je zde hlavní hvězdou (CTA tlačítka)
-        'accent-soft': '#E76F4B1A',
-        highlight: '#d35470',   // Růžová pro aktivní stavy v menu, tagy
-        spark: '#FACC15',       // Žlutá pro hodnocení, "Pro" odznaky, úspěch
-        info: '#00b2bf',        // Azurová pouze pro informační tooltipy/bubliny
-        
-        light: '#FFF1F2',       // Bílá s nepatrným teplým nádechem
-        muted: '#9f85c7',
+           // Tady je tvoje fialová absolutním králem - tvoří celou plochu
+        bg: '#21024F',          // TVOJE HLAVNÍ FIALOVÁ (na <body> tag)
+        // Panely nejsou plné barvy, ale poloprůhledné bílé/černé přes tu fialovou
+        // V Tailwindu použiješ např. bg-brand-panel backdrop-blur-md
+        panel: '#ffffff0d',     // 5% bílá pro skleněný efekt
+        surface: '#ffffff1a',   // 10% bílá pro hover stavy na skle
+        border: '#ffffff33',    // 20% bílá pro tenké ohraničení skla
+        // Zbytek tvých barev slouží pro čistá, plná tlačítka plovoucí na skle
+        primary: '#00b2bf',     // Azurová (Hlavní akce)
+        secondary: '#d35470',   // Růžová (Sekundární akce)
+        tertiary: '#E76F4B',    // Oranžová (Zvýraznění)
+        spark: '#FACC15',       // Žlutá (Drobné jiskry, např. loading indikátor)
+        light: '#FFFFFF',       // Ostrá bílá pro text, aby na skle vynikl
+        muted: '#a390c4',
         }
       },
       fontFamily: {
