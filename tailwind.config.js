@@ -8,17 +8,14 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0B0C10',        // Původní tmavá (dobře funguje)
-        panel: '#161620',       // Neutrální tmavá
-        surface: '#21024F',     // TVOJE HLAVNÍ FIALOVÁ (použita pro vybrané položky/menu)
-        border: '#d35470',      // Tvoje růžová (tenké linky, velmi stylové)
-        accent: '#d35470',      // Růžová jako hlavní akcent
-        'accent-soft': '#d3547026',
-        light: '#FFFFFF',
-        muted: '#A0A0A0',
-        'muted-soft': '#404040',
-        // Doporučení: Použij gradient z Fialové (#21024F) do Azurové (#00b2bf)
-        // pro hlavní tlačítka nebo pozadí hlavičky.
+          dark: '#020005',        // Téměř černá (pro maximální kontrast 3D modelu)
+        panel: '#150133',       // Tmavší verze tvé fialové (méně rušivá)
+        surface: '#21024F',     // TVOJE HLAVNÍ FIALOVÁ (jen pro hlavičky/aktivní karty)
+        border: '#3c107a',      // Světlejší fialová linka
+        accent: '#00b2bf',      // Azurová (jediná výrazná barva pro tlačítka)
+        'accent-soft': '#00b2bf1A', // Jemný podkres
+        light: '#E2E8F0',       // Světle šedá (ne čistě bílá, tolik netahá oči)
+        muted: '#64748B',
         }
       },
       fontFamily: {
