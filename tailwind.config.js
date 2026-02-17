@@ -8,16 +8,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#000000',        // Černá (pro maximální kontrast)
+          dark: '#0e021a',        // Velmi tmavá fialová (téměř černá)
         panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#21024F',     // Žádná změna barvy, jen border
-        // Barvy pro "nálepky" a tlačítka
-        primary: '#00b2bf',     // Azurová (tlačítko 1)
-        secondary: '#E76F4B',   // Oranžová (tlačítko 2)
-        tertiary: '#d35470',    // Růžová (badge)
-        border: '#000000',      // Černé tlusté ohraničení prvků uvnitř fialové
-        light: '#FFFFFF',       // Bílá
-        muted: '#C084FC',
+        surface: '#2F0866',     // Světlejší fialová
+        // Zelená jako hlavní akční prvek (Toxic Green)
+        success: '#059669',     // Smaragdová zelená (Tlačítka)
+        'success-glow': '#05966926', // Zelená záře
+        // Růžová pro kontrast (Destructive/Secondary)
+        danger: '#d35470',      
+        // Azurová jen pro info
+        info: '#00b2bf',
+        light: '#ECFDF5',       // Text s lehkým nádechem do zelena
+        muted: '#6D28D9',
         }
       },
       fontFamily: {
