@@ -8,15 +8,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#050A0F',
-  panel: '#0F172A',
-  surface: '#111827',
-  border: '#1F2937',
-  accent: '#00E5FF',
-  'accent-soft': '#00E5FF1A',
-  light: '#E5E7EB',
-  muted: '#94A3B8',
-  'muted-soft': '#64748B',
+          dark: '#0B0613',
+  panel: '#140B22',
+  surface: '#1E1330',
+  border: '#312E81',
+  accent: '#8B5CF6',
+  'accent-soft': '#8B5CF61A',
+  light: '#F3F4F6',
+  muted: '#A1A1AA',
+  'muted-soft': '#71717A',
         }
       },
       fontFamily: {
