@@ -8,14 +8,15 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#020005',        // Téměř černá (pro maximální kontrast 3D modelu)
-        panel: '#150133',       // Tmavší verze tvé fialové (méně rušivá)
-        surface: '#21024F',     // TVOJE HLAVNÍ FIALOVÁ (jen pro hlavičky/aktivní karty)
-        border: '#3c107a',      // Světlejší fialová linka
-        accent: '#00b2bf',      // Azurová (jediná výrazná barva pro tlačítka)
-        'accent-soft': '#00b2bf1A', // Jemný podkres
-        light: '#E2E8F0',       // Světle šedá (ne čistě bílá, tolik netahá oči)
-        muted: '#64748B',
+          dark: '#100029',        // Tmavý podklad s nádechem fialové
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (velké plochy)
+        surface: '#340578',     // Světlejší fialová pro hover
+        border: '#d35470',      // Růžové ohraničení (velmi stylové)
+        accent: '#E76F4B',      // Oranžová (hlavní tlačítka - "Call to Action")
+        'accent-soft': '#E76F4B26',
+        secondary: '#d35470',   // Růžová pro sekundární tlačítka
+        light: '#FFFFFF',       // Čistá bílá pro text, aby prorazila barvy
+        muted: '#C4B5FD',
         }
       },
       fontFamily: {
