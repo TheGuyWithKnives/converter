@@ -16,7 +16,7 @@ export default {
   'accent-soft': '#3B82F61A',
   light: '#F8FAFC',
   muted: '#94A3B8',
-  'muted-soft': '#64748B',,
+  'muted-soft': '#64748B',
         }
       },
       fontFamily: {
