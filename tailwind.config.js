@@ -8,20 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-           // Tady je tvoje fialová absolutním králem - tvoří celou plochu
-        bg: '#21024F',          // TVOJE HLAVNÍ FIALOVÁ (na <body> tag)
-        // Panely nejsou plné barvy, ale poloprůhledné bílé/černé přes tu fialovou
-        // V Tailwindu použiješ např. bg-brand-panel backdrop-blur-md
-        panel: '#ffffff0d',     // 5% bílá pro skleněný efekt
-        surface: '#ffffff1a',   // 10% bílá pro hover stavy na skle
-        border: '#ffffff33',    // 20% bílá pro tenké ohraničení skla
-        // Zbytek tvých barev slouží pro čistá, plná tlačítka plovoucí na skle
-        primary: '#00b2bf',     // Azurová (Hlavní akce)
-        secondary: '#d35470',   // Růžová (Sekundární akce)
-        tertiary: '#E76F4B',    // Oranžová (Zvýraznění)
-        spark: '#FACC15',       // Žlutá (Drobné jiskry, např. loading indikátor)
-        light: '#FFFFFF',       // Ostrá bílá pro text, aby na skle vynikl
-        muted: '#a390c4',
+           dark: '#05040a',        // Skoro černá, aby vynikla mřížka/model
+        panel: '#100126',       // Velmi tmavá fialová (podklad panelů)
+        surface: '#21024F',     // TVOJE HLAVNÍ FIALOVÁ (Hlavičky, aktivní taby)
+        border: '#00b2bf33',    // Azurové ohraničení (30% průhlednost) - vypadá jako laser
+        accent: '#00b2bf',      // Azurová (Hlavní akce)
+        'accent-soft': '#00b2bf1A',
+        secondary: '#E76F4B',   // Oranžová (Sekundární tlačítka)
+        status: '#FACC15',      // Žlutá (pouze ikonky warning/processing)
+        light: '#E2E8F0',       // Chladná bílá
+        muted: '#64748B',
         }
       },
       fontFamily: {
