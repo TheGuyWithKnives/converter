@@ -8,7 +8,7 @@ export default {
     extend: {
       colors: {
         brand: {
-         dark: '#0B0C10',        // Neutrální černá
+         dark: '#21024F',
         panel: '#1A1B2E',       // Tmavá modrá
         surface: '#21024F',     // TVOJE HLAVNÍ FIALOVÁ (hlavičky, aktivní menu)
         border: '#FFD700',      // NOVÁ ŽLUTÁ (Zlatá - tenké linky, ohraničení)
