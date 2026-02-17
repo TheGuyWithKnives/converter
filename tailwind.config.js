@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#050510',        // Hodně tmavá, spíše do modra
+          dark: '#120b1a',        // Tmavá šedo-fialová
         panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#1A1B40',     // Tmavě modrá pro kontrast s fialovou
-        border: '#00b2bf40',    // Azurová s průhledností (vypadá jako sklo)
-        accent: '#00b2bf',      // Azurová (Zářící tlačítka)
-        'accent-soft': '#00b2bf1A',
-        // Růžová jen jako doplněk pro chyby nebo zrušení
-        error: '#d35470',
-        light: '#F0F9FF',       // Ledově bílá
-        muted: '#64748B',
+        surface: '#2d1e3d',     // Teplejší tmavá barva
+        border: '#E76F4B',      // Oranžová (výrazné orámování inputů)
+        accent: '#E76F4B',      // Oranžová (Call to Action)
+        'accent-strong': '#cf5536', // Tmavší oranžová pro hover tlačítka
+        // Azurová jen pro neutrální info
+        secondary: '#00b2bf',
+        light: '#FFF5F1',       // Text s nádechem do tepla
+        muted: '#9CA3AF',
         }
       },
       fontFamily: {
