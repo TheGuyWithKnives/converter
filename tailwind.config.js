@@ -8,18 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#0e021a',        // Velmi tmavá fialová (téměř černá)
+          dark: '#020617',        // Tmavá noční modř
         panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#2F0866',     // Světlejší fialová
-        // Zelená jako hlavní akční prvek (Toxic Green)
-        success: '#059669',     // Smaragdová zelená (Tlačítka)
-        'success-glow': '#05966926', // Zelená záře
-        // Růžová pro kontrast (Destructive/Secondary)
-        danger: '#d35470',      
-        // Azurová jen pro info
-        info: '#00b2bf',
-        light: '#ECFDF5',       // Text s lehkým nádechem do zelena
-        muted: '#6D28D9',
+        // Druhá hlavní barva pozadí (pro sidebar nebo footer)
+        forest: '#14532d',      // Hluboká lesní zelená
+        leaf: '#166534',        // Světlejší zelená (hover)
+        // Akcent (Oheň v lese)
+        accent: '#E76F4B',      // Oranžová (Tlačítka)
+        border: '#14532d',      // Zelené ohraničení fialových panelů
+        light: '#F0FDF4',       // Bílá
+        muted: '#4ade80',
         }
       },
       fontFamily: {
