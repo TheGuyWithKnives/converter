@@ -8,17 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#040d14',        // Temná modro-černá
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#2D1B69',     // O něco teplejší fialová
-        // Barvy polární záře
-        teal: '#0d9488',        // Tmavší tyrkysová/zelená
-        cyan: '#00b2bf',        // Tvoje azurová
-        // Růžová jen jako drobný detail (tečka)
-        spot: '#d35470',
-        border: '#0d94884d',    // Průhledná zeleno-modrá
-        light: '#CCFBF1',       // Ledově bílá
-        muted: '#94A3B8',
+          dark: '#0f0518',        // Velmi hluboká fialová (skoro černá)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (pozadí panelů)
+        // ZELENÁ APLIKACE: Použijeme ji na pozadí inputů a karet uvnitř panelu
+        surface: '#1a2e05',     // Velmi tmavá olivová (podklad pro formuláře)
+        border: '#4d7c0f',      // Olivová (rámečky inputů - technický look)
+        accent: '#E76F4B',      // Oranžová (Hlavní tlačítko "FIRE/GENERATE")
+        // Doplňky
+        secondary: '#00b2bf',   // Azurová (číselné hodnoty)
+        muted: '#bef264',       // Světle limetková (text v grafech)
+        light: '#ecfccb',
         }
       },
       fontFamily: {
