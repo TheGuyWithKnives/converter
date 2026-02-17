@@ -16,7 +16,6 @@ dark: '#0f0124',        // Téměř černá s nádechem do fialova
         'accent-soft': '#d3547026', // Jemný růžový podkres
         // Ostatní barvy jen velmi tlumeně pro případ nouze
         info: '#00b2bf',        
-        
         light: '#FFFFFF',
         muted: '#E0CCF2',
         }
