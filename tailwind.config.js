@@ -8,16 +8,16 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#120b1a',        // Tmavá šedo-fialová
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
-        surface: '#2d1e3d',     // Teplejší tmavá barva
-        border: '#E76F4B',      // Oranžová (výrazné orámování inputů)
-        accent: '#E76F4B',      // Oranžová (Call to Action)
-        'accent-strong': '#cf5536', // Tmavší oranžová pro hover tlačítka
-        // Azurová jen pro neutrální info
-        secondary: '#00b2bf',
-        light: '#FFF5F1',       // Text s nádechem do tepla
-        muted: '#9CA3AF',
+          dark: '#160036',        // Hluboká temná fialová (skoro černá)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (karty)
+        // Zde je ten trik: Dvě barvy bojují o pozornost
+        cyan: '#00b2bf',        // Použij na Text / Ikonky / Linky
+        pink: '#d35470',        // Použij na Tlačítka / Ohraničení / Aktivní stavy
+        // Smíchaná barva pro neutrální prvky (jemně do fialova)
+        surface: '#2a0a5e',     
+        border: '#d3547080',    // Poloprůhledná růžová
+        light: '#E0F7FA',       // Azurově bílá (ne čistě bílá)
+        muted: '#8B5CF6',
         }
       },
       fontFamily: {
