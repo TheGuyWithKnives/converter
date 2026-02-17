@@ -8,16 +8,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#160036',        // Hluboká temná fialová (skoro černá)
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (karty)
-        // Zde je ten trik: Dvě barvy bojují o pozornost
-        cyan: '#00b2bf',        // Použij na Text / Ikonky / Linky
-        pink: '#d35470',        // Použij na Tlačítka / Ohraničení / Aktivní stavy
-        // Smíchaná barva pro neutrální prvky (jemně do fialova)
-        surface: '#2a0a5e',     
-        border: '#d3547080',    // Poloprůhledná růžová
-        light: '#E0F7FA',       // Azurově bílá (ne čistě bílá)
-        muted: '#8B5CF6',
+          dark: '#0f0518',        // Velmi tmavá "spálená" fialová
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ
+        // Gradientní prvky
+        fire: '#E76F4B',        // Oranžová (začátek gradientu)
+        berry: '#d35470',       // Růžová (konec gradientu)
+        // Speciální barva pro interakci
+        accent: '#E76F4B',      // Hlavní akční barva
+        'accent-glow': '#E76F4B40', // Oranžová záře kolem inputů
+        surface: '#33104a',     // Fialová s nádechem do červena
+        border: '#d35470',      // Růžové linky
+        light: '#FFF0ED',       // Teplá bílá (barva papíru)
+        muted: '#9F7AEA',
         }
       },
       fontFamily: {
