@@ -8,16 +8,18 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#110022',        // Téměř černá s fialovým podtónem (hlavní pozadí)
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (karty, menu, modaly)
-        surface: '#330570',     // Světlejší fialová (hover na kartách)
-        border: '#d35470',      // Tvoje růžová jako tenké neonové ohraničení karet
-        accent: '#00b2bf',      // Azurová (primární tlačítka - svítí ve tmě)
-        'accent-soft': '#00b2bf26', 
-        action: '#E76F4B',      // Oranžová (sekundární tlačítka nebo přepínače)
-        warning: '#FACC15',     // Žlutá (pouze pro varování, errory, nebo ikony)
-        light: '#F8FAFC',
-        muted: '#A78BFA',
+          dark: '#1a053a',        // Temně fialová (teplejší odstín pro pozadí)
+        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (všechny hlavní prvky UI)
+        surface: '#2c0466',     // Jemný přechod pro aktivní prvky
+        border: '#4a154b',      // Tlumené ohraničení (do ruda/fialova)
+        accent: '#E76F4B',      // Tvoje oranžová je zde hlavní hvězdou (CTA tlačítka)
+        'accent-soft': '#E76F4B1A',
+        highlight: '#d35470',   // Růžová pro aktivní stavy v menu, tagy
+        spark: '#FACC15',       // Žlutá pro hodnocení, "Pro" odznaky, úspěch
+        info: '#00b2bf',        // Azurová pouze pro informační tooltipy/bubliny
+        
+        light: '#FFF1F2',       // Bílá s nepatrným teplým nádechem
+        muted: '#9f85c7',
         }
       },
       fontFamily: {
