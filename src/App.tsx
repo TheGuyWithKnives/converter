@@ -538,7 +538,7 @@ function App() {
                       </div>
                       <button
                         onClick={() => setActiveTab('viewer')}
-                        className="absolute bottom-3 right-3 bg-brand-accent text-brand-light px-4 py-2 rounded-lg text-xs font-bold shadow-glow flex items-center gap-2"
+                        className="absolute bottom-3 right-3 bg-brand-accent text-brand-dark px-4 py-2 rounded-lg text-xs font-bold shadow-glow flex items-center gap-2"
                       >
                         <Layout className="w-4 h-4" /> Otevrit ve Vieweru
                       </button>
@@ -572,13 +572,13 @@ function App() {
                           <div className="flex bg-brand-dark p-1 rounded-lg border border-brand-light/5 self-start sm:self-auto">
                             <button
                               onClick={() => setUploadMode('single')}
-                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'single' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
+                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'single' ? 'bg-brand-accent text-brand-dark shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
                             >
                               Single
                             </button>
                             <button
                               onClick={() => setUploadMode('multi')}
-                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'multi' ? 'bg-brand-accent text-brand-light shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
+                              className={`px-4 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-all ${uploadMode === 'multi' ? 'bg-brand-accent text-brand-dark shadow-glow' : 'text-brand-muted hover:text-brand-light'}`}
                             >
                               Multi-View
                             </button>
@@ -707,7 +707,7 @@ function App() {
                       <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-center pb-8">
                         <button
                           onClick={() => setActiveTab('viewer')}
-                          className="bg-gradient-to-r from-brand-accent to-brand-accent/80 text-brand-light px-8 py-3.5 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all shadow-glow flex items-center gap-2 hover:scale-105"
+                          className="bg-gradient-to-r from-brand-accent to-brand-accent/80 text-brand-dark px-8 py-3.5 rounded-full font-bold transform translate-y-4 group-hover:translate-y-0 transition-all shadow-glow flex items-center gap-2 hover:scale-105"
                         >
                           <Layout className="w-5 h-5" /> Otevrit ve Vieweru
                         </button>

@@ -22,7 +22,7 @@ export const BalanceDisplay = () => {
       <>
         <button
           onClick={() => setShowAuth(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-accent hover:opacity-90 transition-all text-white font-bold text-sm shadow-glow"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-accent hover:opacity-90 transition-all text-brand-dark font-bold text-sm shadow-glow"
         >
           <LogIn className="w-4 h-4" />
           <span className="hidden sm:inline">Přihlásit se</span>

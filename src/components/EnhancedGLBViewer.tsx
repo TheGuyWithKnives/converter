@@ -290,7 +290,7 @@ export default function EnhancedGLBViewer({ modelUrl, onSceneReady }: EnhancedGL
               <p className="text-brand-accent/80 mb-4 text-sm">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-3 bg-brand-accent hover:opacity-90 text-brand-light rounded-xl font-bold transition-all shadow-glow"
+                className="px-6 py-3 bg-brand-accent hover:opacity-90 text-brand-dark rounded-xl font-bold transition-all shadow-glow"
               >
                 Obnovit stranku
               </button>

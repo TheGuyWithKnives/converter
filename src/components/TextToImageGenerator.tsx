@@ -165,7 +165,7 @@ export const TextToImageGenerator = ({ onImageReady }: TextToImageGeneratorProps
       <button
         onClick={handleGenerate}
         disabled={loading || !prompt.trim()}
-        className="w-full py-3 bg-brand-accent hover:opacity-90 text-brand-light rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-glow"
+        className="w-full py-3 bg-brand-accent hover:opacity-90 text-brand-dark rounded-xl disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-glow"
       >
         {loading ? (
           <>
@@ -199,7 +199,7 @@ export const TextToImageGenerator = ({ onImageReady }: TextToImageGeneratorProps
                   <a
                     href={url}
                     download={`generated-${idx + 1}.png`}
-                    className="p-2 bg-brand-accent rounded-lg text-white shadow-glow"
+                    className="p-2 bg-brand-accent rounded-lg text-brand-dark shadow-glow"
                   >
                     <Download className="w-4 h-4" />
                   </a>

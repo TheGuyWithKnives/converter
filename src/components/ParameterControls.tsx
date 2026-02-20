@@ -85,7 +85,7 @@ const ParameterControls: React.FC<ParameterControlsProps> = ({
           <a
             href={aiModelUrl}
             download="model.glb"
-            className="w-full flex items-center justify-center gap-2 bg-brand-accent hover:bg-red-600 text-white py-3 rounded-xl font-bold shadow-glow transition-all"
+            className="w-full flex items-center justify-center gap-2 bg-brand-accent hover:bg-red-600 text-brand-dark py-3 rounded-xl font-bold shadow-glow transition-all"
           >
             <Download className="w-4 h-4" />
             Stáhnout .GLB

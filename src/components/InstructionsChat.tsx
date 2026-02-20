@@ -69,7 +69,7 @@ const InstructionsChat: React.FC<InstructionsChatProps> = ({ onInstructionsChang
         <button
           type="submit"
           disabled={disabled || !input.trim()}
-          className="absolute right-2 top-1.5 p-1.5 bg-brand-accent text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:bg-brand-panel transition-all"
+          className="absolute right-2 top-1.5 p-1.5 bg-brand-accent text-brand-dark rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:bg-brand-panel transition-all"
         >
           <Send className="w-3 h-3" />
         </button>

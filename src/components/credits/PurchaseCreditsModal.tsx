@@ -241,7 +241,7 @@ export const PurchaseCreditsModal = ({ onClose }: PurchaseCreditsModalProps) => 
                 <button
                   onClick={handlePurchase}
                   disabled={processing}
-                  className="w-full py-4 bg-brand-accent hover:opacity-90 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-glow"
+                  className="w-full py-4 bg-brand-accent hover:opacity-90 text-brand-dark rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-glow"
                 >
                   {processing ? (
                     <>

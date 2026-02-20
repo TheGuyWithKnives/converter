@@ -163,7 +163,7 @@ export default function MaterialEditor({ onApply, currentSettings }: MaterialEdi
 
         <button
           onClick={handleApply}
-          className="w-full px-4 py-2.5 bg-brand-accent hover:opacity-90 text-brand-light font-bold rounded-xl transition-all shadow-glow"
+          className="w-full px-4 py-2.5 bg-brand-accent hover:opacity-90 text-brand-dark font-bold rounded-xl transition-all shadow-glow"
         >
           Apply Material
         </button>
