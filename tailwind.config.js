@@ -14,7 +14,7 @@ export default {
           border: '#00F5FF',
           accent: '#00F5FF',
           secondary: '#00dcfe',
-          light: '#252525',
+          light: '#ffffff',
           muted: '#FFFFFF',
         }
       },
