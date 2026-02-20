@@ -330,7 +330,7 @@ function App() {
                   onClick={() => setGenerationMode('image')}
                   className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
                     generationMode === 'image'
-                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      ? 'bg-brand-accent text-brand-dark shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
                   }`}
                 >
@@ -340,7 +340,7 @@ function App() {
                   onClick={() => setGenerationMode('text')}
                   className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
                     generationMode === 'text'
-                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      ? 'bg-brand-accent text-brand-dark shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
                   }`}
                 >
@@ -351,7 +351,7 @@ function App() {
                   onClick={() => setGenerationMode('text-to-image')}
                   className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
                     generationMode === 'text-to-image'
-                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      ? 'bg-brand-accent text-brand-dark shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
                   }`}
                 >
@@ -361,7 +361,7 @@ function App() {
                   onClick={() => setGenerationMode('image-to-image')}
                   className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-2 ${
                     generationMode === 'image-to-image'
-                      ? 'bg-brand-accent text-brand-light shadow-glow'
+                      ? 'bg-brand-accent text-brand-dark shadow-glow'
                       : 'text-brand-muted hover:text-brand-light hover:bg-brand-light/5'
                   }`}
                 >
