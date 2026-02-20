@@ -55,15 +55,15 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: #0d2030;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #00F5FF33;
 }
 
 ::selection {
-  background: rgba(255, 0, 60, 0.3);
-  color: #F4F4F4;
+  background: rgba(0, 245, 255, 0.25);
+  color: #ffffff;
 }

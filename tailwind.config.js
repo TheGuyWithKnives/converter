@@ -8,15 +8,14 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#021a1a',        // Hluboká bažinná zelená (POZADÍ STRÁNKY)
-        // ZELENÁ APLIKACE: Fialová je nyní "popředí"
-        panel: '#21024F',       // TVOJE HLAVNÍ FIALOVÁ (Karty plavou v prostoru)
-        surface: '#2E1065',     // Světlejší fialová (Header karty)
-        border: '#115e59',      // Tmavě tyrkysovo-zelené ohraničení fialových karet
-        accent: '#00b2bf',      // Azurová (Hlavní tlačítka - svítí na fialové i zelené)
-        secondary: '#E76F4B',   // Oranžová (Hover efekty)
-        light: '#ffffff',       // Čistá bílá
-        muted: '#99f6e4',
+          dark: '#0B0F14',
+          panel: '#0d1a22',
+          surface: '#112230',
+          border: '#00F5FF',
+          accent: '#00F5FF',
+          secondary: '#00dcfe',
+          light: '#ffffff',
+          muted: '#7ecfdb',
         }
       },
       fontFamily: {
@@ -24,8 +23,8 @@ export default {
         sans: ['"Inter"', '"Arial Nova"', 'Arial', 'sans-serif'],
       },
       boxShadow: {
-        'glow': '0 0 20px rgba(255, 0, 60, 0.3)',
-        'glow-strong': '0 0 30px rgba(255, 0, 60, 0.5)',
+        'glow': '0 0 20px rgba(0, 245, 255, 0.3)',
+        'glow-strong': '0 0 30px rgba(0, 245, 255, 0.5)',
         'panel': '0 4px 24px rgba(0, 0, 0, 0.4)',
         'elevated': '0 8px 32px rgba(0, 0, 0, 0.5)',
       },

@@ -70,7 +70,7 @@ function App() {
       setProgress(0);
       setProgressMessage('');
       toast('Proces zrusen', {
-        style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' }
+        style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' }
       });
     }
   }, []);
@@ -87,7 +87,7 @@ function App() {
 
     setIsProcessing(true);
     setProgress(0);
-    setProgressMessage('Startuji GENZEO Engine...');
+    setProgressMessage('Startuji NewAge Engine...');
     setAiModelUrl(null);
     setMesh(null);
 
@@ -106,8 +106,8 @@ function App() {
         setProgress(1);
         setProgressMessage('Hotovo!');
         toast.success('Model vygenerovan!', {
-          style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
-          iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+          style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+          iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' }
         });
       } else {
         throw new Error('No model URL received');
@@ -124,7 +124,7 @@ function App() {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       if (!errorMessage.includes('cancelled')) {
         toast.error(`Chyba: ${errorMessage}`, {
-          style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' }
+          style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' }
         });
       }
       setIsProcessing(false);
@@ -136,8 +136,8 @@ function App() {
     setAiModelUrl(url);
     setActiveTab('viewer');
     toast.success('Model pripraven!', {
-      style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
-      iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+      style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+      iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' }
     });
   }, []);
 
@@ -151,8 +151,8 @@ function App() {
         const url = URL.createObjectURL(file);
         setCurrentImage({ file, url });
         toast.success('Obrazek pripraven k 3D generovani', {
-          style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
-          iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+          style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+          iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' }
         });
       })
       .catch(() => {
@@ -164,8 +164,8 @@ function App() {
     setAiModelUrl(url);
     if (taskId) setRigTaskId(taskId);
     toast.success('Rigging dokoncen!', {
-      style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
-      iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+      style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+      iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' }
     });
   }, []);
 
@@ -185,7 +185,7 @@ function App() {
         setAiModelUrl(null);
         setActiveTab('viewer');
         toast.success('STL model nacten', {
-          style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #3B82F6' },
+          style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #3B82F6' },
         });
       }, undefined, () => {
         toast.error('Chyba pri nacitani STL souboru');
@@ -233,7 +233,7 @@ function App() {
 
   const handleExport = useCallback((format: 'obj' | 'stl' | 'ply' | 'fbx') => {
     if (!mesh) {
-      toast.error('Pouzijte tlacitko Download GLB pro AI modely', { style: { background: '#0F172A', color: '#F4F4F4' } });
+      toast.error('Pouzijte tlacitko Download GLB pro AI modely', { style: { background: '#0B0F14', color: '#F4F4F4' } });
       return;
     }
     const filename = currentImage?.file.name.replace(/\.[^/.]+$/, '') || 'model';
@@ -242,7 +242,7 @@ function App() {
       if (format === 'stl') downloadFile(exportToSTL(mesh), `${filename}.stl`, 'text/plain');
       if (format === 'ply') downloadFile(exportToPLY(mesh), `${filename}.ply`, 'text/plain');
       if (format === 'fbx') downloadFile(exportToFBX(mesh), `${filename}.fbx`, 'text/plain');
-      toast.success(`Export ${format.toUpperCase()} hotov`, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } });
+      toast.success(`Export ${format.toUpperCase()} hotov`, { style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' } });
     } catch {
       toast.error('Chyba exportu');
     }
@@ -264,7 +264,7 @@ function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#0F172A',
+            background: '#0B0F14',
             color: '#F4F4F4',
             border: '1px solid #1E293B',
             fontFamily: '"Inter", "Arial Nova", sans-serif',
@@ -290,13 +290,16 @@ function App() {
         <div className="px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-brand-accent to-brand-accent/80 rounded-xl flex items-center justify-center shadow-glow transition-transform hover:scale-105 relative">
-                <Box className="w-6 h-6 sm:w-7 sm:h-7 text-brand-light" />
-                <div className="absolute inset-0 rounded-xl bg-brand-light/10 blur-xl"></div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden flex-shrink-0 transition-transform hover:scale-105 shadow-glow">
+                <img
+                  src="/WhatsApp_Image_2026-02-19_at_15.24.41.jpeg"
+                  alt="NewAge Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-spartan font-bold text-brand-light tracking-wide">
-                  GENZEO<span className="text-brand-accent">.</span>
+                  NewAge<span className="text-brand-accent">.</span>
                 </h1>
                 <p className="text-[10px] sm:text-xs text-brand-muted/80 tracking-[0.15em] uppercase font-semibold">
                   AI-Powered 3D Generation Suite
@@ -671,14 +674,14 @@ function App() {
                       <div className="py-4">
                         <ImageToImageGenerator
                           onModelGenerated={handleTextTo3DReady}
-                          onError={(msg) => toast.error(msg, { style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' } })}
+                          onError={(msg) => toast.error(msg, { style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' } })}
                           onSendToMultiView={(file, url) => {
                             setCurrentImage({ file, url });
                             setGenerationMode('image');
                             setUploadMode('single');
                             toast.success('Obrazek prenesen do Multi-View', {
-                              style: { background: '#0F172A', color: '#F4F4F4', border: '1px solid #FF003C' },
-                              iconTheme: { primary: '#FF003C', secondary: '#F4F4F4' }
+                              style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+                              iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' }
                             });
                           }}
                         />
@@ -764,7 +767,7 @@ function App() {
                       </div>
                       <div>
                         <h4 className="font-bold text-brand-light mb-2 font-spartan text-sm flex items-center gap-2">
-                          GENZEO TIP
+                          NEWAGE TIP
                           <span className="text-[9px] bg-brand-accent/20 px-2 py-0.5 rounded-full text-brand-accent">PRO</span>
                         </h4>
                         <p className="text-xs text-brand-muted/90 leading-relaxed font-sans">

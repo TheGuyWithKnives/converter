@@ -216,7 +216,7 @@ export default function ImageEditor({ imageFile, onSave, onCancel }: ImageEditor
 
     if (tool === 'clone' && cloneSource) {
       ctx.save();
-      ctx.strokeStyle = '#FF003C';
+      ctx.strokeStyle = '#00F5FF';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cloneSource.x, cloneSource.y, brush.size / 2 + 4, 0, Math.PI * 2);
