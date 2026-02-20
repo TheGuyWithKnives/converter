@@ -61,7 +61,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="bg-brand-panel rounded-2xl shadow-elevated border border-brand-border p-8 max-w-2xl w-full">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 bg-brand-accent rounded-full flex items-center justify-center shadow-glow">
-                <AlertTriangle className="w-6 h-6 text-white" />
+                <AlertTriangle className="w-6 h-6 text-brand-dark" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-brand-light">Neco se pokazilo</h1>

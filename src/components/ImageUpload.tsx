@@ -136,7 +136,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageUpload, disabled }) =>
         ) : (
           // --- STAV: ČEKÁ NA NAHRÁNÍ ---
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
-            <div className={`p-4 rounded-full mb-4 transition-transform duration-300 ${isDragActive ? 'scale-110 bg-brand-accent text-brand-light' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:text-brand-light group-hover:border-brand-accent'}`}>
+            <div className={`p-4 rounded-full mb-4 transition-transform duration-300 ${isDragActive ? 'scale-110 bg-brand-accent text-brand-dark' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:text-brand-light group-hover:border-brand-accent'}`}>
               {isDragActive ? (
                 <Upload className="w-8 h-8 animate-bounce" />
               ) : (

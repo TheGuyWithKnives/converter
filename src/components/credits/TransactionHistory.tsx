@@ -89,7 +89,7 @@ export const TransactionHistory = ({ onClose }: TransactionHistoryProps) => {
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   filter === 'all'
-                    ? 'bg-brand-accent text-white'
+                    ? 'bg-brand-accent text-brand-dark'
                     : 'bg-brand-surface text-brand-muted hover:text-brand-light'
                 }`}
               >
@@ -99,7 +99,7 @@ export const TransactionHistory = ({ onClose }: TransactionHistoryProps) => {
                 onClick={() => setFilter('purchase')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   filter === 'purchase'
-                    ? 'bg-brand-accent text-white'
+                    ? 'bg-brand-accent text-brand-dark'
                     : 'bg-brand-surface text-brand-muted hover:text-brand-light'
                 }`}
               >
@@ -109,7 +109,7 @@ export const TransactionHistory = ({ onClose }: TransactionHistoryProps) => {
                 onClick={() => setFilter('usage')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   filter === 'usage'
-                    ? 'bg-brand-accent text-white'
+                    ? 'bg-brand-accent text-brand-dark'
                     : 'bg-brand-surface text-brand-muted hover:text-brand-light'
                 }`}
               >
