@@ -298,8 +298,10 @@ function App() {
                 />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-spartan font-bold text-brand-light tracking-wide">
-                  NewAge<span className="text-brand-accent">.</span>
+                <h1 className="text-xl sm:text-2xl font-spartan font-bold tracking-wide flex items-baseline gap-0">
+                  <span className="text-brand-light">NewAge</span>
+                  <span className="inline-block w-px h-5 bg-brand-accent/50 mx-1.5 self-center"></span>
+                  <span className="text-brand-accent">.</span>
                 </h1>
                 <p className="text-[10px] sm:text-xs text-brand-muted/80 tracking-[0.15em] uppercase font-semibold">
                   AI-Powered 3D Generation Suite
