@@ -62,7 +62,7 @@ const MultiImageUpload: React.FC<MultiImageUploadProps> = ({ onImagesUpload, dis
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand-dark/80 pointer-events-none" />
         
         <div className="z-10 text-center p-4">
-           <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-3 transition-colors ${isDragActive ? 'bg-brand-accent text-brand-dark' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:border-brand-accent group-hover:text-brand-light'}`}>
+           <div className={`w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-3 transition-colors ${isDragActive ? 'bg-brand-accent text-white' : 'bg-brand-panel border border-brand-light/10 text-brand-muted group-hover:border-brand-accent group-hover:text-brand-light'}`}>
               <Layers className="w-6 h-6" />
            </div>
            <h3 className="text-sm font-spartan font-bold text-brand-light">

@@ -119,7 +119,7 @@ export const PasswordResetModal = ({ onClose, onSwitchToLogin }: PasswordResetMo
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-accent hover:opacity-90 text-brand-dark rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-brand-accent hover:opacity-90 text-white rounded-lg font-bold text-base transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
