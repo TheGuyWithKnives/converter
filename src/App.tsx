@@ -765,7 +765,7 @@ function App() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/10 blur-3xl rounded-full"></div>
                     <div className="relative z-10 flex items-start gap-4">
                       <div className="bg-gradient-to-br from-brand-accent to-brand-accent/70 p-2.5 rounded-xl shadow-glow flex-shrink-0">
-                        <Zap className="w-5 h-5 text-brand-light" />
+                        <Zap className="w-5 h-5 text-brand-dark" />
                       </div>
                       <div>
                         <h4 className="font-bold text-brand-light mb-2 font-spartan text-sm flex items-center gap-2">
