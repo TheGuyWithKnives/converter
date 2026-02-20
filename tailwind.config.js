@@ -15,7 +15,7 @@ export default {
           accent: '#00F5FF',
           secondary: '#00dcfe',
           light: '#252525',
-          muted: '#7ecfdb',
+          muted: '#ffffff',
         }
       },
       fontFamily: {
