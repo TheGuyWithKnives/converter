@@ -120,9 +120,10 @@ Deno.serve(async (req: Request) => {
     const data = await response.json();
 
     if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.message || 'Meshy API error', details: data }), {
+      const errorMessage = data?.message || data?.error || `Meshy API error (${response.status})`;
+      return new Response(JSON.stringify({ error: errorMessage, details: data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: response.status,
+        status: 200,
       });
     }
 

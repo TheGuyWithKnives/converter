@@ -123,7 +123,18 @@ async function invokeMeshyAPI<T>(action: string, payload: Record<string, unknown
   const { data, error } = await supabase.functions.invoke('meshy-api', {
     body: { action, payload }
   });
-  if (error) throw error;
+
+  if (error) {
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+    throw new Error(error.message || 'Edge Function error');
+  }
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
   refreshMeshyBalance();
   return data as T;
 }
