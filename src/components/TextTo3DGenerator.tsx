@@ -104,7 +104,7 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
         mode: 'preview',
         art_style: artStyle as any,
         ai_model: aiModel,
-        enable_pbr: enablePBR,
+        ...(aiModel !== 'meshy-4' && { enable_pbr: enablePBR }),
         topology,
         target_polycount: targetPolycount,
         symmetry_mode: symmetryMode,
@@ -369,15 +369,17 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enablePBR}
-              onChange={(e) => setEnablePBR(e.target.checked)}
-              className="w-3.5 h-3.5 rounded"
-            />
-            PBR materiály (metallic, roughness, normal)
-          </label>
+          {aiModel !== 'meshy-4' && (
+            <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enablePBR}
+                onChange={(e) => setEnablePBR(e.target.checked)}
+                className="w-3.5 h-3.5 rounded"
+              />
+              PBR materiály (metallic, roughness, normal)
+            </label>
+          )}
         </div>
       )}
 
