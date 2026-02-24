@@ -3,8 +3,10 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import {
   Box, Sparkles, Images, Edit3, Layout, Upload, Bone, Zap,
-  Paintbrush, Grid3x3, Play, Menu, X, Eye, ImageIcon, Wand2, Clock
+  Paintbrush, Grid3x3, Play, Menu, X, Eye, ImageIcon, Wand2, Clock,
+  Scissors, HeartPulse, Download
 } from 'lucide-react';
+import { removeBackground } from './services/backgroundRemoval';
 import { Toaster, toast } from 'react-hot-toast';
 
 import ImageUpload from './components/ImageUpload';
@@ -254,6 +256,40 @@ function App() {
       setMesh(mesh);
     }
   }, [mesh]);
+
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+
+  const handleRemoveBackground = useCallback(async () => {
+    if (!currentImage) return;
+    setIsRemovingBg(true);
+    try {
+      const img = new Image();
+      img.src = currentImage.url;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+      });
+      const result = await removeBackground(img);
+      result.imageWithoutBg.toBlob((blob) => {
+        if (!blob) {
+          toast.error('Chyba při odstraňování pozadí');
+          setIsRemovingBg(false);
+          return;
+        }
+        const file = new File([blob], 'no-bg.png', { type: 'image/png' });
+        const url = URL.createObjectURL(file);
+        setCurrentImage({ file, url });
+        toast.success('Pozadí odstraněno', {
+          style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' },
+          iconTheme: { primary: '#00F5FF', secondary: '#F4F4F4' },
+        });
+        setIsRemovingBg(false);
+      }, 'image/png');
+    } catch {
+      toast.error('Chyba při odstraňování pozadí');
+      setIsRemovingBg(false);
+    }
+  }, [currentImage]);
 
   const hasModel = mesh || aiModelUrl;
   const hasUploadedImage = (uploadMode === 'single' && currentImage) || (uploadMode === 'multi' && currentImages.files.length > 0);
@@ -631,13 +667,29 @@ function App() {
                                 </div>
                               )}
                               
-                              <button
-                                onClick={handleOpenEditor}
-                                disabled={isProcessing}
-                                className="w-full py-3 bg-gradient-to-r from-brand-dark/80 to-brand-dark/60 hover:from-brand-dark hover:to-brand-dark/80 border-2 border-brand-light/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-brand-light/30 text-brand-muted hover:text-brand-light shadow-lg"
-                              >
-                                <Edit3 className="w-4 h-4" /> Editor obrazku
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={handleOpenEditor}
+                                  disabled={isProcessing}
+                                  className="flex-1 py-3 bg-gradient-to-r from-brand-dark/80 to-brand-dark/60 hover:from-brand-dark hover:to-brand-dark/80 border-2 border-brand-light/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-brand-light/30 text-brand-muted hover:text-brand-light shadow-lg"
+                                >
+                                  <Edit3 className="w-4 h-4" /> Editor
+                                </button>
+                                {uploadMode === 'single' && currentImage && (
+                                  <button
+                                    onClick={handleRemoveBackground}
+                                    disabled={isProcessing || isRemovingBg}
+                                    className="flex-1 py-3 bg-gradient-to-r from-brand-dark/80 to-brand-dark/60 hover:from-brand-dark hover:to-brand-dark/80 border-2 border-brand-light/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:border-rose-400/40 text-brand-muted hover:text-rose-400 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                                    title="Odstranit pozadí z obrázku"
+                                  >
+                                    {isRemovingBg ? (
+                                      <><Scissors className="w-4 h-4 animate-pulse" /> Zpracovávám...</>
+                                    ) : (
+                                      <><Scissors className="w-4 h-4" /> Pozadí</>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
                               <button
                                 onClick={handleGenerate}
                                 disabled={isProcessing}
@@ -773,7 +825,7 @@ function App() {
                           <span className="text-[9px] bg-brand-accent/20 px-2 py-0.5 rounded-full text-brand-accent">PRO</span>
                         </h4>
                         <p className="text-xs text-brand-muted/90 leading-relaxed font-sans">
-                          Podporované formáty: <span className="text-brand-light font-semibold">JPG, PNG</span> pro AI generování a <span className="text-brand-light font-semibold">STL</span> pro analýzu tisku. STL soubory se automaticky zobrazují s nástroji pro tisk.
+                          Pro nejlepší výsledky použijte obrázky s <span className="text-brand-light font-semibold">čistým pozadím</span>. Tlačítko <span className="text-brand-accent font-semibold">Pozadí</span> automaticky odstraní pozadí před generováním. Pro postavy zvolte <span className="text-brand-light font-semibold">A-Pose</span> nebo <span className="text-brand-light font-semibold">T-Pose</span> pro lepší rigging.
                         </p>
                       </div>
                     </div>
@@ -851,6 +903,48 @@ function App() {
                       </div>
                     </div>
                     <RemeshControl modelUrl={aiModelUrl} onRemeshed={(url) => setAiModelUrl(url)} />
+                  </div>
+
+                  <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-green-400/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-green-400/40 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400/20 to-green-400/10 flex items-center justify-center border border-green-400/20">
+                        <HeartPulse className="w-4 h-4 text-green-400" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-brand-light font-spartan">Smart Healing</div>
+                        <div className="text-[9px] text-brand-muted uppercase tracking-wider">Oprava artefaktů</div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-brand-muted leading-relaxed mb-3">
+                      Automaticky odstraní povrchové chyby, díry a artefakty na vygenerovaném modelu.
+                    </p>
+                    <button
+                      onClick={() => toast('Smart Healing je dostupný v Meshy Studio plánu.', { style: { background: '#0B0F14', color: '#F4F4F4', border: '1px solid #00F5FF' }, icon: '🛠' })}
+                      className="w-full py-2.5 bg-green-400/10 border border-green-400/30 hover:bg-green-400/20 text-green-400 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                    >
+                      <HeartPulse className="w-3.5 h-3.5" /> Spustit Healing
+                    </button>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-brand-panel/95 to-brand-panel/85 backdrop-blur-xl border-2 border-brand-accent/20 rounded-2xl p-4 sm:p-5 shadow-2xl hover:border-brand-accent/40 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-accent/20 to-brand-accent/10 flex items-center justify-center border border-brand-accent/20">
+                        <Download className="w-4 h-4 text-brand-accent" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm text-brand-light font-spartan">Stáhnout</div>
+                        <div className="text-[9px] text-brand-muted uppercase tracking-wider">Export modelu</div>
+                      </div>
+                    </div>
+                    <a
+                      href={aiModelUrl || '#'}
+                      download="model.glb"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 bg-brand-accent/10 border border-brand-accent/30 hover:bg-brand-accent/20 text-brand-accent rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Stáhnout GLB
+                    </a>
                   </div>
                 </div>
               )}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { meshyService } from '../services/meshyService';
 import { modelHistoryService } from '../services/modelHistoryService';
-import { Loader2, Sparkles, ChevronDown, ChevronUp, Wand2 } from 'lucide-react';
+import { Loader2, Sparkles, ChevronDown, ChevronUp, Wand2, Triangle, Square } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface TextTo3DGeneratorProps {
@@ -17,9 +17,31 @@ const ART_STYLES = [
 ] as const;
 
 const AI_MODELS = [
-  { value: 'meshy-4', label: 'Meshy-4 (Rychlý)' },
-  { value: 'meshy-5', label: 'Meshy-5 (Kvalitní)' },
-  { value: 'meshy-6', label: 'Meshy-6 (Nejnovější)' },
+  { value: 'meshy-4', label: 'Meshy-4', desc: 'Rychlý' },
+  { value: 'meshy-5', label: 'Meshy-5', desc: 'Kvalitní' },
+  { value: 'meshy-6', label: 'Meshy-6', desc: 'Nejnovější' },
+] as const;
+
+const MODEL_TYPES = [
+  { value: 'standard', label: 'Standard', desc: 'Plné detaily' },
+  { value: 'lowpoly', label: 'Low-Poly', desc: 'Čistá topologie' },
+] as const;
+
+const SYMMETRY_MODES = [
+  { value: 'off', label: 'Vypnuto' },
+  { value: 'auto', label: 'Auto' },
+  { value: 'on', label: 'Zapnuto' },
+] as const;
+
+const POSE_MODES = [
+  { value: '', label: 'Žádná' },
+  { value: 'a-pose', label: 'A-Pose' },
+  { value: 't-pose', label: 'T-Pose' },
+] as const;
+
+const TOPOLOGY_MODES = [
+  { value: 'triangle', label: 'Trojúhelníky', icon: 'triangle' },
+  { value: 'quad', label: 'Čtverce', icon: 'quad' },
 ] as const;
 
 export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
@@ -36,6 +58,12 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
   const [refining, setRefining] = useState(false);
   const [texturePrompt, setTexturePrompt] = useState('');
   const [currentHistoryId, setCurrentHistoryId] = useState<string | null>(null);
+
+  const [modelType, setModelType] = useState<'standard' | 'lowpoly'>('standard');
+  const [topology, setTopology] = useState<'triangle' | 'quad'>('triangle');
+  const [symmetryMode, setSymmetryMode] = useState<'off' | 'auto' | 'on'>('auto');
+  const [poseMode, setPoseMode] = useState<'' | 'a-pose' | 't-pose'>('');
+  const [targetPolycount, setTargetPolycount] = useState<number>(30000);
 
   const pollTask = (taskId: string, type: 'text-to-3d', onSuccess: (task: any) => void) => {
     const interval = setInterval(async () => {
@@ -77,6 +105,10 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
         art_style: artStyle as any,
         ai_model: aiModel,
         enable_pbr: enablePBR,
+        topology,
+        target_polycount: targetPolycount,
+        symmetry_mode: symmetryMode,
+        ...(poseMode && { pose_mode: poseMode }),
         ...(negativePrompt && { negative_prompt: negativePrompt }),
       });
 
@@ -91,6 +123,10 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
           art_style: artStyle,
           ai_model: aiModel,
           enable_pbr: enablePBR,
+          model_type: modelType,
+          topology,
+          symmetry_mode: symmetryMode,
+          pose_mode: poseMode,
           mode: 'preview',
         },
         credits_used: 0,
@@ -193,6 +229,9 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
       />
+      <div className="flex justify-end">
+        <span className="text-[10px] text-brand-muted">{prompt.length}/600</span>
+      </div>
 
       <div className="flex gap-2">
         <select
@@ -204,15 +243,63 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
-        <select
-          value={aiModel}
-          onChange={(e) => setAiModel(e.target.value)}
-          className="flex-1 p-2 rounded-lg bg-brand-dark border border-white/10 text-white text-xs focus:border-brand-accent/50 focus:outline-none"
-        >
+        <div className="flex-1 flex gap-1">
           {AI_MODELS.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
+            <button
+              key={m.value}
+              onClick={() => setAiModel(m.value)}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${
+                aiModel === m.value
+                  ? 'bg-brand-accent/15 border-brand-accent text-brand-accent'
+                  : 'border-white/10 text-brand-muted hover:text-brand-light hover:border-white/20 bg-brand-dark'
+              }`}
+              title={m.desc}
+            >
+              {m.label.replace('meshy-', 'M')}
+            </button>
           ))}
-        </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-brand-muted uppercase tracking-wider block mb-1.5">Typ modelu</label>
+          <div className="flex gap-1">
+            {MODEL_TYPES.map(t => (
+              <button
+                key={t.value}
+                onClick={() => setModelType(t.value as any)}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border ${
+                  modelType === t.value
+                    ? 'bg-brand-accent/15 border-brand-accent text-brand-accent'
+                    : 'border-white/10 text-brand-muted hover:text-brand-light hover:border-white/20 bg-brand-dark'
+                }`}
+                title={t.desc}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-brand-muted uppercase tracking-wider block mb-1.5">Topologie</label>
+          <div className="flex gap-1">
+            {TOPOLOGY_MODES.map(t => (
+              <button
+                key={t.value}
+                onClick={() => setTopology(t.value as any)}
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all border flex items-center justify-center gap-1 ${
+                  topology === t.value
+                    ? 'bg-brand-accent/15 border-brand-accent text-brand-accent'
+                    : 'border-white/10 text-brand-muted hover:text-brand-light hover:border-white/20 bg-brand-dark'
+                }`}
+              >
+                {t.value === 'triangle' ? <Triangle className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+                <span>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <button
@@ -224,7 +311,7 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
       </button>
 
       {showAdvanced && (
-        <div className="space-y-2 p-3 bg-brand-dark/50 rounded-lg border border-white/5">
+        <div className="space-y-3 p-3 bg-brand-dark/50 rounded-lg border border-white/5">
           <div>
             <label className="text-xs text-gray-400 block mb-1">Negativní prompt</label>
             <input
@@ -235,6 +322,53 @@ export const TextTo3DGenerator = ({ onModelReady }: TextTo3DGeneratorProps) => {
               className="w-full p-2 rounded-lg bg-brand-dark border border-white/10 text-white text-xs placeholder-gray-600 focus:border-brand-accent/50 focus:outline-none"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] text-brand-muted uppercase tracking-wider block mb-1.5">Symetrie</label>
+              <select
+                value={symmetryMode}
+                onChange={(e) => setSymmetryMode(e.target.value as any)}
+                className="w-full p-2 rounded-lg bg-brand-dark border border-white/10 text-white text-xs focus:border-brand-accent/50 focus:outline-none"
+              >
+                {SYMMETRY_MODES.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-brand-muted uppercase tracking-wider block mb-1.5">Póza</label>
+              <select
+                value={poseMode}
+                onChange={(e) => setPoseMode(e.target.value as any)}
+                className="w-full p-2 rounded-lg bg-brand-dark border border-white/10 text-white text-xs focus:border-brand-accent/50 focus:outline-none"
+              >
+                {POSE_MODES.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-brand-muted uppercase tracking-wider block mb-1.5">
+              Počet polygonů: <span className="text-brand-accent">{targetPolycount.toLocaleString()}</span>
+            </label>
+            <input
+              type="range"
+              min={1000}
+              max={300000}
+              step={1000}
+              value={targetPolycount}
+              onChange={(e) => setTargetPolycount(Number(e.target.value))}
+              className="w-full accent-brand-accent"
+            />
+            <div className="flex justify-between text-[10px] text-brand-muted mt-0.5">
+              <span>1K</span>
+              <span>300K</span>
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
             <input
               type="checkbox"
